@@ -50,7 +50,7 @@ class TaxonomyScheme(ABC):
         pass
 
     @abstractmethod
-    def is_valid(self, taxon: Taxon) -> bool:
+    def is_valid_taxon(self, taxon: Taxon) -> bool:
         """Does the scheme recognize this Taxon?"""
         pass
 
@@ -207,7 +207,7 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
     def is_root(self, taxon: Taxon) -> bool:
         return taxon == self.node_to_taxon[self.root()]
 
-    def is_valid(self, taxon: Taxon) -> bool:
+    def is_valid_taxon(self, taxon: Taxon) -> bool:
         return taxon in self.taxon_to_node.keys()
 
     def mrca(self, taxa: Sequence[Taxon]) -> Taxon:

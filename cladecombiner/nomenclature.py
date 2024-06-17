@@ -38,6 +38,14 @@ class Nomenclature(ABC):
         """Is this name valid in the nomenclature scheme?"""
         pass
 
+    @abstractmethod
+    def name(self) -> str:
+        """Name of this nomenclature scheme"""
+        pass
+
+    def __str__(self):
+        return self.name()
+
 
 class AlgorithmicNomenclature(Nomenclature):
     """
@@ -220,15 +228,6 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         # clean up names
 
     #######
-    # Abstract methods to be implemented in subclasses
-    #######
-
-    @abstractmethod
-    def name(self) -> str:
-        """Name of this Nomenclature system"""
-        pass
-
-    #######
     # Implementations of class methods
     #######
 
@@ -346,14 +345,18 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             depth: how many levels of aliasing deep is this name? Starting at 1 for longest (fully de-aliased) name and increasing as the name gets shorter
         """
         parts = self.partition_name(name)
-        n = 1 + self.max_sublevels * depth
+        n = self.max_sublevels * depth
         alias = None
+        # print("Trying to find shorter form of " + name)
         for k, v in self.alias_map_inv.items():
-            kl = self.split(k)
+            kl = self.partition_name(k)
+            # print(">> " + str(k) + " : " + str(v))
+            # print(">>>> " + str(kl[1]) + " == " + str(parts[1]))
+            # print(">>>> " + str(self.partition_name(self.longer_name(k))[1][:n]) + " == " + str(parts[1][:n]))
             if (
-                kl == parts[1][:n]
+                kl[1] == parts[1]
                 or self.partition_name(self.longer_name(k))[1][:n]
-                == parts[1][:n]
+                == self.partition_name(self.longer_name(name))[1][:n]
             ):
                 alias = v
                 break
@@ -518,6 +521,13 @@ class PangoNomenclature(PangoLikeNomenclature):
             return True
         else:
             return False
+
+    ########################
+    # Superclass overrides #
+    ########################
+    def is_special(self, name):
+        # Under the Pango scheme, recombinants are special-purpose ancestors
+        return name in self.special or self.is_hybrid(name)
 
 
 class PangoSc2Nomenclature(PangoNomenclature):

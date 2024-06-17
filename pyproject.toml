@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 dendropy = "^5.0.1"
+pytest = "^8.2.2"
 
 
 [build-system]

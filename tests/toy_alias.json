@@ -1,0 +1,11 @@
+{
+    "MONTY" : "",
+    "PYTHONS" : "MONTY.42.42.42",
+    "FLYING" : "PYTHONS.47.47.47",
+    "CIRCUS" : "FLYING.8472.8472.8472",
+    "LIFE" : "PYTHONS.0.0.0",
+    "OF" : "LIFE.7.7.7",
+    "BRIAN" : "OF.9.9.9",
+    "CARNIVAL" : "MONTY.42.42.42.47.47.47.1.1.1",
+    "PATHG" : "MONTY.25.25.25"
+}
