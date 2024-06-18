@@ -2,9 +2,9 @@ import json
 import string
 import urllib.request
 from abc import ABC, abstractmethod
-from collections.abc import Collection, Container, Sequence
+from collections.abc import Collection, Container, MutableSequence, Sequence
 from sys import maxsize as integer_inf
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import dendropy
 
@@ -66,10 +66,38 @@ class AlgorithmicNomenclature(Nomenclature):
         """
         pass
 
-    def add_tips_for_ancestral(
+    @abstractmethod
+    def disambiguate_ancestral(self, name: str) -> str:
+        """
+        Mark this name as being used in the sense of the ancestral taxon.
+        """
+        pass
+
+    @abstractmethod
+    def disambiguate_tip(self, name: str) -> str:
+        """
+        Mark this name as being used in the sense of a tip taxon.
+        """
+        pass
+
+    def add_observed_tips(
         self, phy: dendropy.Tree, tips: Sequence[str]
     ) -> None:
-        raise NotImplementedError()
+        to_add = []
+        for node in phy.preorder_node_iter():
+            if node.is_internal():
+                if node.label in tips:
+                    tip = dendropy.Node()
+                    tip.label = self.disambiguate_tip(node.label)
+                    to_add.append(
+                        (
+                            node,
+                            tip,
+                        )
+                    )
+                node.label = self.disambiguate_ancestral(node.label)
+            else:
+                node.label = self.disambiguate_tip(node.label)
 
     def subtree_from_histories(
         self, node: dendropy.Node, lvl: int, histories: Sequence[Sequence[str]]
@@ -96,7 +124,10 @@ class AlgorithmicNomenclature(Nomenclature):
                     self.subtree_from_histories(child, lvl + 1, next_histories)
 
     def taxonomy_tree(
-        self, taxa: Sequence[str], insert_tips: bool = True
+        self,
+        taxa: Sequence[str],
+        insert_tips: bool,
+        name_cleanup_fun: Optional[Callable[[str], str]] = None,
     ) -> dendropy.Tree:
         """ """
         histories = self.full_histories(taxa)
@@ -124,8 +155,12 @@ class AlgorithmicNomenclature(Nomenclature):
 
         self.subtree_from_histories(node, 1, histories)
 
+        if name_cleanup_fun is not None:
+            for node in phy.preorder_node_iter():
+                node.label = name_cleanup_fun(node.label)
+
         if insert_tips:
-            self.add_tips_for_ancestral(phy, taxa)
+            self.add_observed_tips(phy, taxa)
 
         return phy
 
@@ -176,18 +211,8 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     def full_histories(
         self, taxa: Sequence[str], stop_at_hybrid: bool = False
     ) -> Sequence[Sequence[str]]:
-        long_names = [
-            self.longer_name(taxon, stop_at_hybrid=stop_at_hybrid)
-            for taxon in taxa
-        ]
-        histories = []
-        for name in long_names:
-            history = [""]
-            levels = self.split(name)
-            for i in range(len(levels)):
-                history.append(self.join(levels[: (i + 1)]))
-            histories.append(history)
-        return histories
+        raise NotImplementedError()
+        # return [self.get_history(taxon, [], stop_at_hybrid) for taxon in taxa]
 
     def is_root(self, name: str) -> bool:
         return name == self.root
@@ -223,19 +248,28 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         return True
 
     def taxonomy_tree(self, taxa: Sequence[str]) -> dendropy.Tree:
-        raise NotImplementedError()
-        # phy = super().taxonomy_tree(taxa)
-        # clean up names
+        return super().taxonomy_tree(
+            taxa=taxa,
+            insert_tips=True,
+            name_cleanup_fun=self.coax_name,
+        )
 
     #######
     # Implementations of class methods
     #######
+    def coax_name(self, name: str) -> str:
+        """
+        Coax a potentially too-short or too-long name to proper format.
+        """
+        if self.is_root(name) or self.is_special(name):
+            return name
+        return self.shorter_name(self.longer_name(name))
 
     def equals_ignore_alias(self, x: str, y: str) -> bool:
         """
         Are two names the same, accounting for aliasing?
         """
-        return self.find_ignore_alias(x, [y]) == 1
+        return self.find_ignore_alias(x, [y]) == 0
 
     def find_ignore_alias(self, taxon: str, taxa: Sequence[str]) -> int:
         """
@@ -248,6 +282,46 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
                 match = i
                 break
         return match
+
+    def get_history(self, name: str, stop_at_hybrid: bool) -> Sequence[str]:
+        """
+        Recursively get a path of ancestry from this taxon to the root.
+
+        This is different than a long-form name because it allows us to pass through hybridization (recombination) events.
+        In the face of recombination, when stop_at_hybrid == False, we follow the ancestry of the 5'-most portion of the genome
+        """
+        history = []
+        self.extend_history(name, history, stop_at_hybrid)
+        return history
+
+    def extend_history(
+        self, name: str, history: MutableSequence[str], stop_at_hybrid: bool
+    ) -> None:
+        """
+        Recursively extend a path of ancestry from this taxon to the root.
+        """
+        comp = self.partition_name(name)
+        if not comp[0]:
+            raise ValueError("Invalid name: " + name)
+        # Digest sublevels
+        if comp[1]:
+            for i in range(1, len(comp[1]) + 1)[::-1]:
+                history.append(self.unpartition_name([comp[0], comp[1][:i]]))
+        # Handle alias
+        alias = self.join(comp[0])
+        if self.is_root(alias):
+            history.append(self.root)
+        else:
+            if self.is_special(alias):
+                history.append(alias)
+            if not self.is_hybrid(alias):
+                self.extend_history(
+                    self.alias_map[alias], history, stop_at_hybrid
+                )
+            elif not stop_at_hybrid:
+                self.extend_history(
+                    self.alias_map[alias][0], history, stop_at_hybrid
+                )
 
     def invert_map(self) -> None:
         """Inverts the shorter->longer self.alias_map"""
@@ -297,24 +371,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         """
         return self.sep.join(comp)
 
-    # def longer_name(self, name: str, stop_at_hybrid: bool = True) -> str:
-    #     """
-    #     Get non-aliased form of an aliased name
-    #     """
-    #     if not self.alias_map:
-    #         raise RuntimeError(
-    #             "Cannot construct long form of name without an alias list."
-    #         )
-    #     alias_levels = list(self.partition_name(name))
-    #     next_alias = self.alias_map[alias_levels[0][-1]]
-    #     while (not self.is_root(next_alias)) and (not self.is_hybrid(alias_levels[0][-1])):
-    #         parts = self.partition_name(next_alias)
-    #         alias_levels[0] = parts[0]
-    #         alias_levels[1] = [*parts[1], *alias_levels[1]]
-    #         next_alias = self.alias_map[parts[0][-1]]
-    #     return self.join([*alias_levels[0], *alias_levels[1]])
-
-    def longer_name(self, name: str, stop_at_hybrid: bool = True) -> str:
+    def longer_name(self, name: str) -> str:
         """
         Get non-aliased form of an aliased name
         """
@@ -324,12 +381,9 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             )
         alias_levels = list(self.partition_name(name))
         next_alias = self.alias_map[alias_levels[0][-1]]
-        while not self.is_root(next_alias):
-            if self.is_hybrid(alias_levels[0][-1]):
-                if stop_at_hybrid:
-                    break
-                else:
-                    next_alias = next_alias[0]
+        while not self.is_root(next_alias) and (
+            not self.is_hybrid(alias_levels[0][-1])
+        ):
             parts = self.partition_name(next_alias)
             alias_levels[0] = parts[0]
             alias_levels[1] = [*parts[1], *alias_levels[1]]
@@ -411,7 +465,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
                 )
             if not self.is_alias_map_hybrid(v):
                 if self.is_root(v):
-                    if k not in self.special:
+                    if not self.is_special(k):
                         raise RuntimeError(
                             'Found alias for root in taxon not listed as special: "'
                             + k
@@ -460,17 +514,14 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             raise RuntimeError(
                 "Cannot get shorter name without an alias list."
             )
-
-        alias_levels = list(self.partition_name(name))
+        comp = list(self.partition_name(name))
         lvl = 1
-        while len(alias_levels[1]) > self.max_sublevels:
-            alias = self.next_shorter_alias(
-                self.unpartition_name(alias_levels), lvl
-            )
-            alias_levels[0] = [alias]
-            alias_levels[1] = alias_levels[1][3:]
+        while len(comp[1]) > self.max_sublevels:
+            alias = self.next_shorter_alias(self.unpartition_name(comp), lvl)
+            comp[0] = [alias]
+            comp[1] = comp[1][3:]
             lvl += 1
-        return self.unpartition_name(alias_levels)
+        return self.unpartition_name(comp)
 
     def split(self, name: str) -> Sequence[str]:
         """Split name into component levels"""
@@ -498,10 +549,16 @@ class PangoNomenclature(PangoLikeNomenclature):
             special=special,
         )
         self.ambiguity = r"*"
+        self.tip = r"$"
 
     #####
     # Implementation of superclass methods
     #####
+    def disambiguate_ancestral(self, name: str) -> str:
+        return name + self.ambiguity
+
+    def disambiguate_tip(self, name: str) -> str:
+        return name + self.tip
 
     def is_ambiguous(self, name: str) -> bool:
         if self.is_root(name):
