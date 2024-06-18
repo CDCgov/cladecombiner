@@ -83,3 +83,29 @@ def pango_with_recomb_alias():
     pango.special = ["A"]
     pango.setup_alias_map(fp="tests/recomb_alias.json")
     return pango
+
+
+@pytest.fixture(scope="session")
+def tax_tree():
+    """
+    A taxonomy tree constructed for the above recombinant alias history.
+    """
+    pango = cladecombiner.PangoSc2Nomenclature()
+    pango.setup_alias_map(fp="tests/recomb_alias.json")
+
+    taxa = [
+        "A",
+        "A.1.1.2",
+        "A.1.1.3",
+        "A.2.2.3",
+        "B.1.1.3",
+        "B.2.4.8",
+        "XA",
+        "XA.12.3",
+        "XA.1.2.3",
+    ]
+
+    return (
+        pango.taxonomy_tree(taxa, insert_tips=False),
+        pango.taxonomy_tree(taxa, insert_tips=True),
+    )

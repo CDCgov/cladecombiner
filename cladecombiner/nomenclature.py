@@ -211,8 +211,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     def full_histories(
         self, taxa: Sequence[str], stop_at_hybrid: bool = False
     ) -> Sequence[Sequence[str]]:
-        raise NotImplementedError()
-        # return [self.get_history(taxon, [], stop_at_hybrid) for taxon in taxa]
+        return [self.get_history(taxon, stop_at_hybrid) for taxon in taxa]
 
     def is_root(self, name: str) -> bool:
         return name == self.root
@@ -247,10 +246,12 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
                 return False
         return True
 
-    def taxonomy_tree(self, taxa: Sequence[str]) -> dendropy.Tree:
+    def taxonomy_tree(
+        self, taxa: Sequence[str], insert_tips: bool = True
+    ) -> dendropy.Tree:
         return super().taxonomy_tree(
             taxa=taxa,
-            insert_tips=True,
+            insert_tips=insert_tips,
             name_cleanup_fun=self.coax_name,
         )
 
@@ -285,13 +286,14 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
 
     def get_history(self, name: str, stop_at_hybrid: bool) -> Sequence[str]:
         """
-        Recursively get a path of ancestry from this taxon to the root.
+        Get a path of ancestry from the root to this taxon.
 
         This is different than a long-form name because it allows us to pass through hybridization (recombination) events.
         In the face of recombination, when stop_at_hybrid == False, we follow the ancestry of the 5'-most portion of the genome
         """
         history = []
         self.extend_history(name, history, stop_at_hybrid)
+        history.reverse()
         return history
 
     def extend_history(

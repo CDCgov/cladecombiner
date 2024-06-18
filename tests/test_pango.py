@@ -117,10 +117,9 @@ def test_history_norecomb(pango_with_toy_alias):
         "MONTY.42.42.42.47.47.47.1.1.1.1001.1002",
         "MONTY.42.42.42.47.47.47.1.1.1.1001.1002.1003",
     ]
-    expected.reverse()
-    for e, o in zip(expected[:-1], observed[:-1]):
+    for e, o in zip(expected[1:], observed[1:]):
         assert pango_with_toy_alias.equals_ignore_alias(e, o)
-    assert observed[-1] == ""
+    assert observed[0] == ""
 
     observed = pango_with_toy_alias.get_history(
         "CIRCUS.1001.1002.1003", stop_at_hybrid=True
@@ -141,10 +140,9 @@ def test_history_norecomb(pango_with_toy_alias):
         "MONTY.42.42.42.47.47.47.8472.8472.8472.1001.1002",
         "MONTY.42.42.42.47.47.47.8472.8472.8472.1001.1002.1003",
     ]
-    expected.reverse()
-    for e, o in zip(expected[:-1], observed[:-1]):
+    for e, o in zip(expected[1:], observed[1:]):
         assert pango_with_toy_alias.equals_ignore_alias(e, o)
-    assert observed[-1] == ""
+    assert observed[0] == ""
 
 
 def test_history_recomb(pango_with_recomb_alias):
@@ -165,8 +163,7 @@ def test_history_recomb(pango_with_recomb_alias):
         "XA.1.1.1",
         "XB",
     ]
-    expected.reverse()
-    for e, o in zip(expected[:-1], observed[:-1]):
+    for e, o in zip(expected[1:], observed[1:]):
         print("Asserting " + o + " == " + e)
         assert pango_with_recomb_alias.equals_ignore_alias(e, o)
-    assert observed[-1] == ""
+    assert observed[0] == ""
