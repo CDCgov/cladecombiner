@@ -88,12 +88,49 @@ def pango_with_recomb_alias():
 @pytest.fixture(scope="session")
 def tax_tree():
     """
-    A taxonomy tree constructed for the above recombinant alias history.
+    A taxonomy tree constructed for taxa from the above recombinant alias history.
     """
     pango = cladecombiner.PangoSc2Nomenclature()
+    pango.special = ["A"]
     pango.setup_alias_map(fp="tests/recomb_alias.json")
 
-    taxa = [
+    names = [
+        "A",
+        "A.1.1.2",
+        "A.1.1.3",
+        "A.2.2.3",
+        "B.1.1.3",
+        "B.2.4.8",
+        "XA",
+        "XA.12.3",
+        "XA.1.2.3",
+    ]
+    taxa = [cladecombiner.Taxon(name, is_tip=True) for name in names]
+
+    return (
+        pango.taxonomy_tree(
+            taxa,
+            insert_tips=False,
+            warn=False,
+        ),
+        pango.taxonomy_tree(
+            taxa,
+            insert_tips=True,
+            warn=False,
+        ),
+    )
+
+
+@pytest.fixture(scope="session")
+def pango_phylo_taxonomy():
+    """
+    A taxonomy scheme using taxonomy tree for taxa from the above recombinant alias history.
+    """
+    pango = cladecombiner.PangoSc2Nomenclature()
+    pango.special = ["A"]
+    pango.setup_alias_map(fp="tests/recomb_alias.json")
+
+    names = [
         "A",
         "A.1.1.2",
         "A.1.1.3",
@@ -105,7 +142,13 @@ def tax_tree():
         "XA.1.2.3",
     ]
 
-    return (
-        pango.taxonomy_tree(taxa, insert_tips=False),
-        pango.taxonomy_tree(taxa, insert_tips=True),
+    taxa = [cladecombiner.Taxon(name, is_tip=True) for name in names]
+    taxa.append(cladecombiner.Taxon("XA", is_tip=False))
+    taxa.append(cladecombiner.Taxon("B.1", is_tip=False))
+
+    return cladecombiner.PhylogeneticTaxonomyScheme(
+        pango.taxonomy_tree(
+            taxa,
+            warn=False,
+        )
     )

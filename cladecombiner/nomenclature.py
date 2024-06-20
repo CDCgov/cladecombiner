@@ -1,12 +1,15 @@
 import json
 import string
 import urllib.request
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Container, MutableSequence, Sequence
 from sys import maxsize as integer_inf
 from typing import Any, Callable, Optional
 
 import dendropy
+
+from .taxon import Taxon
 
 
 class Nomenclature(ABC):
@@ -66,20 +69,6 @@ class AlgorithmicNomenclature(Nomenclature):
         """
         pass
 
-    @abstractmethod
-    def disambiguate_ancestral(self, name: str) -> str:
-        """
-        Mark this name as being used in the sense of the ancestral taxon.
-        """
-        pass
-
-    @abstractmethod
-    def disambiguate_tip(self, name: str) -> str:
-        """
-        Mark this name as being used in the sense of a tip taxon.
-        """
-        pass
-
     def add_observed_tips(
         self, phy: dendropy.Tree, tips: Sequence[str]
     ) -> None:
@@ -87,17 +76,15 @@ class AlgorithmicNomenclature(Nomenclature):
         for node in phy.preorder_node_iter():
             if node.is_internal():
                 if node.label in tips:
-                    tip = dendropy.Node()
-                    tip.label = self.disambiguate_tip(node.label)
+                    tip = dendropy.Node(label=node.label)
                     to_add.append(
                         (
                             node,
                             tip,
                         )
                     )
-                node.label = self.disambiguate_ancestral(node.label)
-            else:
-                node.label = self.disambiguate_tip(node.label)
+        for nt in to_add:
+            nt[0].add_child(nt[1])
 
     def subtree_from_histories(
         self, node: dendropy.Node, lvl: int, histories: Sequence[Sequence[str]]
@@ -125,12 +112,19 @@ class AlgorithmicNomenclature(Nomenclature):
 
     def taxonomy_tree(
         self,
-        taxa: Sequence[str],
+        taxa: Sequence[Taxon],
         insert_tips: bool,
         name_cleanup_fun: Optional[Callable[[str], str]] = None,
+        warn: bool = True,
     ) -> dendropy.Tree:
         """ """
-        histories = self.full_histories(taxa)
+        unique_names = list(set([taxon.name for taxon in taxa if taxon.tip]))
+        if warn and (len(unique_names) < len(taxa)):
+            warnings.warn(
+                "Removed non-unique and/or non-tip taxa to build tree."
+            )
+
+        histories = self.full_histories(unique_names)
 
         all_names: set[str] = set()
         for history in histories:
@@ -160,7 +154,7 @@ class AlgorithmicNomenclature(Nomenclature):
                 node.label = name_cleanup_fun(node.label)
 
         if insert_tips:
-            self.add_observed_tips(phy, taxa)
+            self.add_observed_tips(phy, unique_names)
 
         return phy
 
@@ -247,12 +241,16 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         return True
 
     def taxonomy_tree(
-        self, taxa: Sequence[str], insert_tips: bool = True
+        self,
+        taxa: Sequence[Taxon],
+        insert_tips: bool = True,
+        warn: bool = True,
     ) -> dendropy.Tree:
         return super().taxonomy_tree(
             taxa=taxa,
             insert_tips=insert_tips,
             name_cleanup_fun=self.coax_name,
+            warn=warn,
         )
 
     #######
@@ -556,12 +554,6 @@ class PangoNomenclature(PangoLikeNomenclature):
     #####
     # Implementation of superclass methods
     #####
-    def disambiguate_ancestral(self, name: str) -> str:
-        return name + self.ambiguity
-
-    def disambiguate_tip(self, name: str) -> str:
-        return name + self.tip
-
     def is_ambiguous(self, name: str) -> bool:
         if self.is_root(name):
             return False

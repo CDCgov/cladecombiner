@@ -135,18 +135,21 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
         self.node_to_taxon = {}
         self.taxon_to_node = {}
         for node in self.tree.preorder_node_iter():
-            self.node_to_taxon[node] = Taxon(node.label)
-            self.taxon_to_node[self.node_to_taxon[node]] = node
+            assert isinstance(node.is_leaf(), bool)  # Pylance paranoia
+            taxon = Taxon(node.label, is_tip=node.is_leaf())
+            self.node_to_taxon[node] = taxon
+            self.taxon_to_node[taxon] = node
 
     def node_path_to_root(self, taxon: Taxon) -> Sequence[dendropy.Node]:
         """
-        Get all nodes between given taxon and the root (inclusive of the root)
+        Get all nodes between given taxon and the root (inclusive of the root and this node)
         """
         path = []
         node = self.taxon_to_node[taxon]
         while node is not self.tree.seed_node:
             path.append(node)
             node = node.parent_node
+        path.append(self.root())
         return path
 
     # @TODO: this class should have more of its own node management, which outsources to dendropy and cleans maps up
@@ -171,7 +174,15 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
     ########################
     def ancestors(self, taxon: Taxon) -> Sequence[Taxon]:
         nodes = self.node_path_to_root(taxon)
-        return [node.label for node in nodes]
+        return [self.node_to_taxon[node] for node in nodes[1:]]
+
+    def children(self, taxon: Taxon) -> Collection[Taxon]:
+        child_nodes = self.taxon_to_node[taxon].child_nodes()
+        children = []
+        if child_nodes:
+            for node in child_nodes:
+                children.append(self.node_to_taxon[node])
+        return children
 
     def contains(self, focal: Taxon, target: Taxon) -> bool:
         if focal not in self.taxon_to_node:
@@ -211,14 +222,12 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
         return taxon in self.taxon_to_node.keys()
 
     def mrca(self, taxa: Sequence[Taxon]) -> Taxon:
+        print("Looking for MRCA of taxa: " + str([str(tax) for tax in taxa]))
         paths = [self.node_path_to_root(taxon) for taxon in taxa]
-        # paths are tip->root, we need root->tip
-        for path in paths:
-            list(path).reverse()
         max_idx = max([len(path) for path in paths])
         idx = 0
         while idx < max_idx:
-            tax_at_lvl = set([path[idx] for path in paths])
+            tax_at_lvl = set([path[-(1 + idx)] for path in paths])
             if len(tax_at_lvl) == 1:
                 idx += 1
             else:
@@ -226,7 +235,7 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
                 break
         if idx < 0:
             raise RuntimeError("Provided taxa do not have MRCA in the tree.")
-        return self.node_to_taxon[paths[0][idx]]
+        return self.node_to_taxon[paths[0][-(1 + idx)]]
 
     def parents(self, taxon: Taxon):
         node_x = self.taxon_to_node[taxon]

@@ -74,15 +74,9 @@ def test_tree_making(tax_tree):
     # )
     assert fully_labeled_trees_same(expected_tree, tax_tree[0])
 
-    # Disambiguate ancestral from tip taxa
-    for node in expected_tree.preorder_node_iter():
-        if node.is_internal():
-            node.label = node.label + r"*"
-        else:
-            node.label = node.label + r"$"
     # Add tips for ancestral taxa which we've observed
-    a_other = dendropy.Node(label="A$")
-    xa_other = dendropy.Node(label="XA$")
+    a_other = dendropy.Node(label="A")
+    xa_other = dendropy.Node(label="XA")
     a.add_child(a_other)
     xa.add_child(xa_other)
 
@@ -92,57 +86,3 @@ def test_tree_making(tax_tree):
     #     )
     # )
     assert fully_labeled_trees_same(expected_tree, tax_tree[1])
-
-
-# def test_tree_mrca(pango_with_tax_tree):
-#     assert pango_with_tax_tree.taxonomy_tree.mrca(
-#         [Taxon("A.1.1.2"), Taxon("A.1.1.3")]
-#     ) == Taxon("A.1.1")
-
-#     assert pango_with_tax_tree.taxonomy_tree.mrca(
-#         [Taxon("A.1.1.2"), Taxon("A.2")]
-#     ) == Taxon("A")
-
-#     assert pango_with_tax_tree.taxonomy_tree.mrca(
-#         [Taxon("XA.1.2"), Taxon("XA.12")]
-#     ) == Taxon("XA")
-
-#     assert pango_with_tax_tree.taxonomy_tree.mrca(
-#         [Taxon("XA.1.2"), Taxon("B.2.4.8")]
-#     ) == Taxon("B.2")
-
-
-# def test_tree_containing_group(pango_with_tax_tree):
-#     assert pango_with_tax_tree.taxonomy_tree.get_containing_group(
-#         Taxon("A.1.1.2")
-#     ) == Taxon("A.1.1")
-
-#     assert pango_with_tax_tree.taxonomy_tree.get_containing_group(
-#         Taxon("A.2")
-#     ) == Taxon("A")
-
-#     assert pango_with_tax_tree.taxonomy_tree.get_containing_group(
-#         Taxon("XA.12")
-#     ) == Taxon("XA")
-
-#     assert pango_with_tax_tree.taxonomy_tree.get_containing_group(
-#         Taxon("XA")
-#     ) == Taxon("B.2")
-
-
-# def test_tree_gte(pango_with_tax_tree):
-#     assert not pango_with_tax_tree.taxonomy_tree.x_gte_y(
-#         x=Taxon("A.1.1.2"), y=Taxon("A.1.1")
-#     )
-
-#     assert pango_with_tax_tree.taxonomy_tree.x_gte_y(
-#         x=Taxon("A"), y=Taxon("A.1.1")
-#     )
-
-#     assert pango_with_tax_tree.taxonomy_tree.x_gte_y(
-#         x=Taxon("A"), y=Taxon("XA")
-#     )
-
-#     assert pango_with_tax_tree.taxonomy_tree.x_gte_y(
-#         x=Taxon("A.2.1"), y=Taxon("XA.12.3")
-#     )
