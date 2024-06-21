@@ -2,7 +2,9 @@ from typing import Any
 
 
 class Taxon:
-    """Representation of taxonomic units"""
+    """
+    Representation of taxonomic units
+    """
 
     def __init__(self, name: str, is_tip: bool, data: Any = None):
         if not isinstance(is_tip, bool):

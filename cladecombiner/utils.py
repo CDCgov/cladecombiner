@@ -2,54 +2,9 @@ from collections.abc import Iterable, Sequence
 from os import path
 from typing import Any, Optional
 
-import dendropy
-
 from .nomenclature import Nomenclature
 from .taxon import Taxon
 from .taxonomy_scheme import TaxonomyScheme
-
-
-def fully_labeled_subtrees_same(
-    node1: dendropy.Node, node2: dendropy.Node
-) -> bool:
-    """
-    Are two subtrees with every node labeled topologically equivalent?
-    """
-    children1 = node1.child_nodes()
-    children2 = node2.child_nodes()
-
-    child_labels1 = [child.label for child in children1].sort()
-    child_labels2 = [child.label for child in children2].sort()
-
-    if not child_labels1 == child_labels2:
-        return False
-
-    for child1 in children1:
-        for child2 in children2:
-            if child1.label == child2.label:
-                fully_labeled_subtrees_same(child1, child2)
-
-    return True
-
-
-def fully_labeled_trees_same(
-    tree1: dendropy.Tree, tree2: dendropy.Tree
-) -> bool:
-    """
-    Are two trees with every node labeled topologically equivalent?
-    """
-    if isinstance(tree1.seed_node, dendropy.Node) and isinstance(
-        tree2.seed_node, dendropy.Node
-    ):
-        if tree1.seed_node.label != tree2.seed_node.label:
-            return False
-        else:
-            return fully_labeled_subtrees_same(
-                tree1.seed_node, tree2.seed_node
-            )
-    else:
-        # Should never hit, required for type checking
-        raise RuntimeError("Malformed tree, seed_node must be a dendropy.Node")
 
 
 def read_taxa(
@@ -60,7 +15,28 @@ def read_taxa(
 ) -> Sequence[Taxon]:
     """
     Reads in taxa as a list of Taxon objects.
+
+    Parameters
+    ---------
+    fp : str
+        The file path to be read from
+    is_tip : bool | Sequence[bool]
+        Either one bool specifying whether all these are tip taxa or not,
+        or one bool per taxon in the file specifying for each.
+    nomenclature : Optional[Nomenclature]
+        If specified, taxon names are checked for validity according to this
+        nomenclature scheme, and an error is raised if an invalid taxon is
+        found.
+    taxonomy_scheme : Optional[TaxonomyScheme]
+        If specified, taxon names are checked for validity according to this
+        taxonomy scheme, and an error is raised if an invalid taxon is found.
+
+    Returns
+    -------
+    Sequence[Taxon]
+        Container of the taxa as Taxon objects.
     """
+
     ext = path.splitext(fp)[1]
     taxa = []
     if ext == ".txt":
@@ -96,15 +72,43 @@ def read_taxa(
 
 
 def printable_taxon_list(taxa: Sequence[Taxon], sep: str = "\n") -> str:
-    """Prettier printing of lists of taxa."""
+    """
+    Prettier printing of lists of taxa.
+
+    Parameters
+    ---------
+    taxa : sequence[Taxon]
+        The Taxon objects to be printed.
+    sep : str
+        The separator for printing the list
+
+    Returns
+    -------
+    str
+        A string which may be fed to print().
+    """
     print_str = ""
     for taxon in taxa:
         print_str += str(taxon) + sep
     return print_str
 
 
-def table(x: Iterable) -> dict:
-    """Like R's base::table(), counts occurrences of elements in container"""
+def table(x: Iterable) -> dict[Any, int]:
+    """
+    Like R's base::table(), counts occurrences of elements in container
+
+    Parameters
+    ---------
+    x : Iterable
+        The container to be tabulated.
+
+    Returns
+    -------
+    dict
+        A dictionary of form object : count, where object is some element in x
+        and count is an int specifying the number of times that object is seen
+        in x.
+    """
     unique = set(x)
     res = {}
     for u in unique:
@@ -115,7 +119,24 @@ def table(x: Iterable) -> dict:
 
 
 def table_equal(x1: Iterable, x2: Iterable) -> bool:
-    """Checks if x1 and x2 have the same items the same number of times"""
+    """
+    Checks if x1 and x2 have the same items the same number of times
+
+    That is, is table(x1) equivalent to table(x2)?
+
+    Parameters
+    ---------
+    x1 : Iterable
+        One container to be checked.
+    x2 : Iterable
+        The other container to be checked.
+
+    Returns
+    -------
+    bool
+        True if both x1 and x2 contain the same objects the same number of
+        times each.
+    """
     t1 = table(x1)
     t2 = table(x2)
     if t1.keys() != t2.keys():
@@ -126,8 +147,21 @@ def table_equal(x1: Iterable, x2: Iterable) -> bool:
     return True
 
 
-def table_index_map(x: Iterable) -> dict:
-    """Like table, but maps to the indices with those elements"""
+def table_index_map(x: Iterable) -> dict[Any, list[int]]:
+    """
+    Like table, but maps to the indices with those elements
+
+    Parameters
+    ---------
+    x : Iterable
+        The container to be tabulated.
+
+    Returns
+    -------
+    dict
+        A dictionary of form object : [indices], where object is some element
+        in x and [indices] is a list of indices in x where that object occurs.
+    """
     unique = set(x)
     res: dict[Any, list[int]] = {}
     for u in unique:
