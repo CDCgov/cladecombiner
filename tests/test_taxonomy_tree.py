@@ -1,6 +1,6 @@
 import dendropy
 
-from cladecombiner.utils import fully_labeled_trees_same
+from cladecombiner.tree_utils import fully_labeled_trees_same
 
 
 def test_tree_making(tax_tree):

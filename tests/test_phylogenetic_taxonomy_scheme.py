@@ -4,7 +4,8 @@ import dendropy
 import pytest
 
 from cladecombiner import Taxon
-from cladecombiner.utils import fully_labeled_trees_same, table_equal
+from cladecombiner.tree_utils import fully_labeled_trees_same
+from cladecombiner.utils import table_equal
 
 
 def test_ancestors(pango_phylo_taxonomy):
