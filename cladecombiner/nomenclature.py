@@ -240,6 +240,7 @@ class AlgorithmicNomenclature(Nomenclature):
                 "Cannot start tree because seed_node is not a dendropy.Node"
             )
 
+        # Support for forests, where we break trees at recombination, could be added
         first_step = set([history[0] for history in histories])
         if len(first_step) != 1:
             raise RuntimeError(
@@ -312,6 +313,10 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     def full_histories(
         self, taxa: Sequence[str], stop_at_hybrid: bool = False
     ) -> Sequence[Sequence[str]]:
+        if not stop_at_hybrid:
+            raise NotImplementedError(
+                "Forests of histories are not currently implemented or supported."
+            )
         return [self.get_history(taxon, stop_at_hybrid) for taxon in taxa]
 
     def is_root(self, name: str) -> bool:
@@ -812,7 +817,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             Reads the alias map and stores it in self.alias_map, then calls
             self.sanitize_map() and self.invert_map().
         """
-        # @TODO should we be thinking about encoding and/or defensive measures?
+        # Should we be thinking about encoding and/or defensive measures?
         if fp:
             alias_file = open(fp)
             alias = json.load(alias_file)
