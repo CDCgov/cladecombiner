@@ -313,7 +313,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     def full_histories(
         self, taxa: Sequence[str], stop_at_hybrid: bool = False
     ) -> Sequence[Sequence[str]]:
-        if not stop_at_hybrid:
+        if stop_at_hybrid:
             raise NotImplementedError(
                 "Forests of histories are not currently implemented or supported."
             )
