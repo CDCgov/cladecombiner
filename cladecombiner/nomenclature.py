@@ -11,6 +11,7 @@ import dendropy
 
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
+from .utils import table
 
 
 class Nomenclature(ABC):
@@ -257,6 +258,35 @@ class AlgorithmicNomenclature(Nomenclature):
         if insert_tips:
             phy = add_paraphyletic_tips(phy, unique_names)
 
+        tip_names = [node.label for node in phy.leaf_node_iter()]
+        int_names = [node.label for node in phy.preorder_internal_node_iter()]
+
+        if len(set(tip_names)) != len(tip_names):
+            tab = table(tip_names)
+            mults = ", ".join(
+                [
+                    str(k) + " (x" + str(v) + ")"
+                    for k, v in tab.items()
+                    if v > 1
+                ]
+            )
+            raise RuntimeError(
+                "Malformed tree has multiples of tip taxa: " + mults
+            )
+
+        if len(set(int_names)) != len(int_names):
+            tab = table(int_names)
+            mults = ", ".join(
+                [
+                    str(k) + " (x" + str(v) + ")"
+                    for k, v in tab.items()
+                    if v > 1
+                ]
+            )
+            raise RuntimeError(
+                "Malformed tree has multiples of internal taxa: " + mults
+            )
+
         return phy
 
 
@@ -469,6 +499,12 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         int
             Position of match in taxa, or -1 if no match
         """
+        if not self.alias_map:
+            raise RuntimeError(
+                "Cannot obtain histories until setup_alias_map() has been called."
+            )
+        if not self.is_valid_name(name):
+            raise ValueError(name + " is not a valid name in " + self.name())
         history = []
         self.extend_history(name, history, stop_at_hybrid)
         history.reverse()
@@ -496,6 +532,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             Adds history to the history argument and then returns or calls
             itself if not done.
         """
+        name = self.longer_name(name)
         comp = self.partition_name(name)
         if not comp[0]:
             raise ValueError("Invalid name: " + name)
@@ -659,6 +696,8 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             raise RuntimeError(
                 "Cannot construct long form of name without an alias list."
             )
+        if self.is_root(name):
+            return name
         alias_levels = list(self.partition_name(name))
         next_alias = self.alias_map[alias_levels[0][-1]]
         while not self.is_root(next_alias) and (

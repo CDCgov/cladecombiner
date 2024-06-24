@@ -120,6 +120,8 @@ def test_history_norecomb(pango_with_toy_alias):
     for e, o in zip(expected[1:], observed[1:]):
         assert pango_with_toy_alias.equals_ignore_alias(e, o)
     assert observed[0] == ""
+    for o in observed:
+        assert o == pango_with_toy_alias.longer_name(o)
 
     observed = pango_with_toy_alias.get_history(
         "CIRCUS.1001.1002.1003", stop_at_hybrid=True
@@ -143,6 +145,8 @@ def test_history_norecomb(pango_with_toy_alias):
     for e, o in zip(expected[1:], observed[1:]):
         assert pango_with_toy_alias.equals_ignore_alias(e, o)
     assert observed[0] == ""
+    for o in observed:
+        assert o == pango_with_toy_alias.longer_name(o)
 
 
 def test_history_recomb(pango_with_recomb_alias):
