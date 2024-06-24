@@ -422,7 +422,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         str
             The name, without too many or too few sublevels.
         """
-        if self.is_root(name) or self.is_special(name):
+        if self.is_root(name):
             return name
         return self.shorter_name(self.longer_name(name))
 
@@ -611,11 +611,14 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     @abstractmethod
     def is_special(self, name: str) -> bool:
         """
-        Does this string specify a name which may be used with 0 sublevels?
+        Is this a recognized special-purpose ancestor?
 
-        For a Pango SARS-CoV-2 example, XBB, as a recombinant, is allowed to be
-        used by itself. Additionally, A and B are special-purpose names which
-        can be used alone.
+        Special-purpose ancestors are allowed to be used with 0 sublevels.
+
+        Under the Pango nomenclature, direct root descendants and recombinants
+        are special-purpose ancestors. Thus for Pango SARS-CoV-2, a special
+        lineage is A, B, or any recombinant such as XBB (but not a descendant,
+        such as XBB.1).
 
         Parameters
         ----------
@@ -751,6 +754,25 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         if not alias:
             raise RuntimeError("Cannot find shorter alias for " + name)
         return alias
+
+    def num_sublevels(self, name: str) -> int:
+        """
+        How many sublevels does this name contain?
+
+        For a Pango SARS-CoV-2 example, the names XBB, XBB.1, XBB.1.5, and
+        XBB.1.5.39 contain 0, 1, 2, and 3 sublevels respectively.
+
+        Parameters
+        ----------
+        name : str
+            The taxon's name.
+
+        Returns
+        -------
+        int
+            The number of sublevels the name contains.
+        """
+        return len(self.partition_name(name)[1])
 
     def partition_name(self, name: str) -> Sequence[Sequence[str]]:
         """
@@ -1015,7 +1037,9 @@ class PangoNomenclature(PangoLikeNomenclature):
             return False
 
     def is_special(self, name: str) -> bool:
-        return name in self.special or self.is_hybrid(name)
+        return name in self.special or (
+            self.is_hybrid(name) and self.num_sublevels(name) == 0
+        )
 
     ########################
     # Superclass overrides #
@@ -1043,8 +1067,8 @@ class PangoNomenclature(PangoLikeNomenclature):
         bool
             True if this is a valid name under the Pango nomenclature.
         """
-        if self.is_hybrid(name) or self.is_special(name):
-            min_sublevels = 0
+        if self.is_special(name) or self.is_hybrid(name):
+            return True
         return super().is_valid_name(name, min_sublevels, max_sublevels)
 
 
