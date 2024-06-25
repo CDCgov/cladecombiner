@@ -7,17 +7,15 @@ class Taxon:
     """
 
     def __init__(self, name: str, is_tip: bool, data: Any = None):
-        if not isinstance(is_tip, bool):
-            raise TypeError()
         self.name: str = name
         self.tip: bool = is_tip
         self.data: Any = data
 
+        if not isinstance(is_tip, bool):
+            raise TypeError(f"is_tip is {is_tip}, not a boolean")
+
     def __eq__(self, other) -> bool:
         return self.name == other.name and self.tip == other.tip
 
-    def __hash__(self) -> int:
-        return hash(str(self.name) + str(self.tip))
-
     def __repr__(self) -> str:
-        return f"Taxon({self.name}, tip={str(self.tip)})"
+        return f"Taxon({repr(self.name)}, tip={repr(self.tip)})"
