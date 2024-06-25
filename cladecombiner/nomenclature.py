@@ -11,7 +11,6 @@ import dendropy
 
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
-from .utils import table
 
 
 class Nomenclature(ABC):
@@ -26,7 +25,7 @@ class Nomenclature(ABC):
         """
         Does this name indicate an ambiguous taxon?
 
-        Ambiguity means a taxon known only to a higher level than to which resolution is possible.
+        An ambiguous taxon is known only to a higher level than to which resolution is possible.
 
         Returns
         -------
@@ -113,77 +112,79 @@ class AlgorithmicNomenclature(Nomenclature):
     a tree suitable for use in PhylogeneticTaxonomyScheme.
     """
 
+    @staticmethod
     @abstractmethod
-    def full_histories(
-        self, taxa: Sequence[str], stop_at_hybrid: bool = False
-    ) -> Sequence[Sequence[str]]:
+    def history(taxon: str, stop_at_hybrid: bool = False) -> Sequence[str]:
         """
-        For each taxon, get the sequence of names of ancestors from the root
-        to it.
+        Get the sequence of names of ancestors from the root to this taxon.
 
         Parameters
         ----------
-        taxa : Sequence[str]
-            Each string is the name of one taxon for which we want the full
-            history.
+        taxa : str
+            taxon name
         stop_at_hybrid : boolean
-            If True, the history for a taxon starts at the most recent
+            If True, the history starts at the most recent
             hybridization event in its ancestry. If False, we extract a linear
             history by taking the ancestry through the first indicated parent
             every time.
 
         Returns
         -------
-        Sequence[Sequence[str]]
-            For each input taxon, the history from the root to the taxon as a
-            Sequence of names of taxa.
+        Sequence[str]
+            list of taxon names
         """
         pass
 
-    def subtree_from_histories(
-        self, node: dendropy.Node, lvl: int, histories: Sequence[Sequence[str]]
-    ) -> None:
+    @staticmethod
+    @abstractmethod
+    def add_history_to_tree(root: dendropy.Node, history: Sequence[str]) -> None:
         """
-        Recursive building of taxonomic tree from taxon-specific histories.
+        Add a root-to-taxon history to an existing tree.
 
         Parameters
         ----------
-        node : dendropy.Node
-            Node defining the subtree to operate on.
-        lvl : int
-            How many levels deep from the root are we?
-        histories: Sequence[Sequence[str]]
-            The histories of all taxa in this subtree for which we are
-            attempting to construct the subtree.
+        root : dendropy.Node
+            root node
+        history: Sequence[str]
+            list of taxon names, from root down
 
         Returns
         -------
         None
-            Modifies tree in-place recursively.
+            Modifies tree in-place.
         """
-        next_step = set([history[lvl] for history in histories])
-        if len(next_step) == 1:
-            child = dendropy.Node(label=next_step.pop())
-            node.add_child(child)
-            next_histories = [
-                history for history in histories if len(history) > lvl + 1
-            ]
-            if next_histories:
-                self.subtree_from_histories(child, lvl + 1, next_histories)
-        elif len(next_step) > 1:
-            for step in next_step:
-                child = dendropy.Node(label=step)
-                node.add_child(child)
-                next_histories = [
-                    history
-                    for history in histories
-                    if len(history) > lvl + 1 and history[lvl] == step
-                ]
-                if next_histories:
-                    self.subtree_from_histories(child, lvl + 1, next_histories)
+        # if no history, nothing to do
+        if len(history) == 0:
+            return None
 
+        # root should be what we think it is
+        assert root.label == history[0]
+
+        # go down the history, following existing nodes where they exist,
+        # creating new ones when needed
+        node = root
+
+        for taxon in history[1:]:
+            # look at the children of the working node. do any of these match the taxon name?
+            child_names = [x.label for x in node.children]
+            taxon_exists = taxon in child_names
+
+            if taxon_exists:
+                # find which node it is, and set that as the new working taxon
+                i = child_names.index(taxon)
+                node = node.children[i]
+            else:
+                # create a new node, and set that as the working node
+                new_node = dendropy.Node(label=taxon)
+                node.add_child(new_node)
+                node = new_node
+
+            # double check that we're at the right place in the tree
+            assert node.label == taxon
+
+    @classmethod
     def taxonomy_tree(
-        self,
+        cls,
         taxa: Sequence[Taxon],
         insert_tips: bool,
         name_cleanup_fun: Optional[Callable[[str], str]] = None,
@@ -221,71 +222,55 @@ class AlgorithmicNomenclature(Nomenclature):
         """
         unique_names = list(set([taxon.name for taxon in taxa if taxon.tip]))
         if warn and (len(unique_names) < len(taxa)):
-            warnings.warn(
-                "Removed non-unique and/or non-tip taxa to build tree."
-            )
+            warnings.warn("Removed non-unique and/or non-tip taxa to build tree.")
 
-        histories = self.full_histories(unique_names)
+        if len(taxa) == 0:
+            raise RuntimeError("Need at least one taxon")
 
-        all_names: set[str] = set()
-        for history in histories:
-            for taxon in history:
-                all_names.add(taxon)
+        histories = [cls.history(name) for name in unique_names]
+        # check that all histories have the same root
+        if len(set(history[0] for history in histories)) > 1:
+            raise RuntimeError("Cannot start tree, not all histories have same root")
+
+        all_names = [taxon for history in histories for taxon in history]
 
         namespace = dendropy.TaxonNamespace(list(all_names))
         phy = dendropy.Tree(taxon_namespace=namespace)
-        node = phy.seed_node
-        if not isinstance(node, dendropy.Node):
+        root = phy.seed_node
+        if not isinstance(root, dendropy.Node):
             # Should never hit, required for type checking
             raise RuntimeError(
                 "Cannot start tree because seed_node is not a dendropy.Node"
             )
 
-        # Support for forests, where we break trees at recombination, could be added
-        first_step = set([history[0] for history in histories])
-        if len(first_step) != 1:
-            raise RuntimeError(
-                "Cannot start tree, not all histories have same root"
-            )
-        node.label = first_step.pop()
+        # set root label
+        root.label = histories[0][0]
 
-        self.subtree_from_histories(node, 1, histories)
+        # build out the tree from the histories
+        for history in histories:
+            cls.add_history_to_tree(root, history)
 
+        # clean up tree node names, if a name cleanup function is provided
         if name_cleanup_fun is not None:
             for node in phy.preorder_node_iter():
                 node.label = name_cleanup_fun(node.label)
 
+        # add paraphyletic tips, if requested
         if insert_tips:
             phy = add_paraphyletic_tips(phy, unique_names)
 
+        # check for duplicated names
         tip_names = [node.label for node in phy.leaf_node_iter()]
         int_names = [node.label for node in phy.preorder_internal_node_iter()]
 
-        if len(set(tip_names)) != len(tip_names):
-            tab = table(tip_names)
-            mults = ", ".join(
-                [
-                    str(k) + " (x" + str(v) + ")"
-                    for k, v in tab.items()
-                    if v > 1
-                ]
-            )
-            raise RuntimeError(
-                "Malformed tree has multiples of tip taxa: " + mults
-            )
+        duplicate_tip_names = [x for x in tip_names if tip_names.count(x) > 1]
+        duplicate_int_names = [x for x in int_names if int_names.count(x) > 1]
 
-        if len(set(int_names)) != len(int_names):
-            tab = table(int_names)
-            mults = ", ".join(
-                [
-                    str(k) + " (x" + str(v) + ")"
-                    for k, v in tab.items()
-                    if v > 1
-                ]
-            )
-            raise RuntimeError(
-                "Malformed tree has multiples of internal taxa: " + mults
-            )
+        if len(duplicate_int_names) > 0:
+            raise RuntimeError(f"Duplicate tip names: {duplicate_tip_names}")
+
+        if len(duplicate_int_names) > 0:
+            raise RuntimeError(f"Duplicate internal node names: {duplicate_int_names}")
 
         return phy
 
@@ -548,13 +533,9 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             if self.is_special(alias):
                 history.append(alias)
             if not self.is_hybrid(alias):
-                self.extend_history(
-                    self.alias_map[alias], history, stop_at_hybrid
-                )
+                self.extend_history(self.alias_map[alias], history, stop_at_hybrid)
             elif not stop_at_hybrid:
-                self.extend_history(
-                    self.alias_map[alias][0], history, stop_at_hybrid
-                )
+                self.extend_history(self.alias_map[alias][0], history, stop_at_hybrid)
 
     def invert_map(self) -> None:
         """
@@ -822,19 +803,13 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             Modifies self.alias_map in-place
         """
         if not self.alias_map:
-            raise RuntimeError(
-                "Missing self.alias_map when trying to sanitize."
-            )
+            raise RuntimeError("Missing self.alias_map when trying to sanitize.")
 
         for k, v in self.alias_map.items():
             if not self.is_valid_alias(k):
-                raise RuntimeError(
-                    "Found invalid taxon as key in alias list: " + k
-                )
+                raise RuntimeError("Found invalid taxon as key in alias list: " + k)
             if self.is_ambiguous(k):
-                raise RuntimeError(
-                    "Found ambiguous taxon as key in alias list: " + k
-                )
+                raise RuntimeError("Found ambiguous taxon as key in alias list: " + k)
             if not self.is_alias_map_hybrid(v):
                 if self.is_root(v):
                     if not self.is_special(k):
@@ -888,9 +863,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             with urllib.request.urlopen(url) as response:
                 self.alias_map = json.loads(response.read().decode("utf8"))
         else:
-            raise RuntimeError(
-                "Must supply either file path or URL to alias json"
-            )
+            raise RuntimeError("Must supply either file path or URL to alias json")
 
         self.sanitize_map()
         self.invert_map()
@@ -915,9 +888,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             Shortest valid form of the name for this taxon.
         """
         if not self.alias_map:
-            raise RuntimeError(
-                "Cannot get shorter name without an alias list."
-            )
+            raise RuntimeError("Cannot get shorter name without an alias list.")
         comp = list(self.partition_name(name))
         lvl = 1
         while len(comp[1]) > self.max_sublevels:
@@ -1090,9 +1061,7 @@ class PangoSc2Nomenclature(PangoNomenclature):
         PangoSc2Nomenclature constructor
         """
 
-        super().__init__(
-            alias_map_hybrid=[list], max_sublevels=3, special=["A", "B"]
-        )
+        super().__init__(alias_map_hybrid=[list], max_sublevels=3, special=["A", "B"])
         self.gh_alias_url: str = gh_alias_url
 
     ##############################
