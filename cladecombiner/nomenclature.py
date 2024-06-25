@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Collection, Container, MutableSequence, Sequence
 from sys import maxsize as integer_inf
 from typing import Any, Callable, Optional
+import validators
 
 import dendropy
 
@@ -20,8 +21,9 @@ class Nomenclature(ABC):
     Nomenclature concerns rules for naming taxa, and what names may imply about those taxa.
     """
 
+    @staticmethod
     @abstractmethod
-    def is_ambiguous(self, name: str) -> bool:
+    def is_ambiguous(name: str) -> bool:
         """
         Does this name indicate an ambiguous taxon?
 
@@ -34,8 +36,9 @@ class Nomenclature(ABC):
         """
         pass
 
+    @staticmethod
     @abstractmethod
-    def is_hybrid(self, name: str) -> bool:
+    def is_hybrid(name: str) -> bool:
         """
         Does this name indicate a hybrid?
 
@@ -50,8 +53,9 @@ class Nomenclature(ABC):
         """
         pass
 
+    @staticmethod
     @abstractmethod
-    def is_root(self, name: str) -> bool:
+    def is_root(name: str) -> bool:
         """
         Does this string specify the root taxon (to which all other taxa belong)?
 
@@ -66,8 +70,9 @@ class Nomenclature(ABC):
         """
         pass
 
+    @staticmethod
     @abstractmethod
-    def is_valid_name(self, name: str) -> bool:
+    def is_valid_name(name: str) -> bool:
         """
         Is this name valid in the nomenclature scheme?
 
@@ -81,21 +86,6 @@ class Nomenclature(ABC):
             True if this is a valid name under the nomenclature.
         """
         pass
-
-    @abstractmethod
-    def name(self) -> str:
-        """
-        Name of this nomenclature scheme
-
-        Returns
-        -------
-        string
-            The name of this taxonomy scheme.
-        """
-        pass
-
-    def __str__(self):
-        return self.name()
 
 
 class AlgorithmicNomenclature(Nomenclature):
@@ -112,9 +102,8 @@ class AlgorithmicNomenclature(Nomenclature):
     a tree suitable for use in PhylogeneticTaxonomyScheme.
     """
 
-    @staticmethod
     @abstractmethod
-    def history(taxon: str, stop_at_hybrid: bool = False) -> Sequence[str]:
+    def history(self, taxon: str, stop_at_hybrid: bool = False) -> Sequence[str]:
         """
         Get the sequence of names of ancestors from the root to this taxon.
 
@@ -136,7 +125,6 @@ class AlgorithmicNomenclature(Nomenclature):
         pass
 
     @staticmethod
-    @abstractmethod
     def add_history_to_tree(root: dendropy.Node, history: Sequence[str]) -> None:
         """
         Add a root-to-taxon history to an existing tree.
@@ -187,7 +175,6 @@ class AlgorithmicNomenclature(Nomenclature):
         cls,
         taxa: Sequence[Taxon],
         insert_tips: bool,
-        name_cleanup_fun: Optional[Callable[[str], str]] = None,
         warn: bool = True,
     ) -> dendropy.Tree:
         """
@@ -206,9 +193,6 @@ class AlgorithmicNomenclature(Nomenclature):
             If True, where a Taxon in the provided taxa is an internal node,
             a tip is added to represent any paraphyletic observations of this
             taxon using add_paraphyletic_tips().
-        name_cleanup_fun : Optional[Callable]
-            A function applied to all node labels after the tree is
-            constructed, to ensure validity of all names.
         warn : bool
             Should we warn the user if any taxa are dropped in the process
             of making the tree?
@@ -250,10 +234,10 @@ class AlgorithmicNomenclature(Nomenclature):
         for history in histories:
             cls.add_history_to_tree(root, history)
 
-        # clean up tree node names, if a name cleanup function is provided
-        if name_cleanup_fun is not None:
-            for node in phy.preorder_node_iter():
-                node.label = name_cleanup_fun(node.label)
+        # validate and clean tree node names
+        for node in phy.preorder_node_iter():
+            node.label = cls.clean_name(node.label)
+            assert cls.is_valid_name(node.label)
 
         # add paraphyletic tips, if requested
         if insert_tips:
@@ -274,68 +258,112 @@ class AlgorithmicNomenclature(Nomenclature):
 
         return phy
 
+    @classmethod
+    def clean_name(cls, name):
+        # by default, the name cleaning is to do nothing
+        return name
+
 
 class PangoLikeNomenclature(AlgorithmicNomenclature):
-    """
-    A Pango-like nomenclature is an AlgorithmicNomenclature with more specific
-    assumptions about the encoding of history.
-
-    Specifically, we assume that the name encodes the history in a string such
-    that the name is a series of (sub)levels denoted by a consistent set of
-    characters (say, digits) separated by a consistent separator (say, r".").
-    The first portion of the name is assumed to be an alias, which is a set of
-    different characters (say, upper case letters) which serve as shorthand
-    for a longer series of levels. The alias is allowed to be cumulative (such
-    as in RSV nomenclature) or not (such as in Pango nomenclature).
-
-    An external file storing the alias shortcuts is required.
-    """
-
     def __init__(
         self,
-        alias_map_hybrid,
-        charsets,
-        cumulative_alias,
-        max_sublevels,
-        root,
-        sep,
-        special,
+        name: str,
+        alias_map_path: str,
+        alias_map_hybrid: Collection[type],
+        charsets: Sequence[set],
+        cumulative_alias: bool,
+        max_sublevels: int,
+        root: str,
+        sep: str,
+        special: Container,
+        alias_map_inv: dict = {},
     ):
-        """ """
-        self.alias_map: dict = {}
-        "Defines mapping to make longer names from shorter ones"
-        self.alias_map_hybrid: Collection[type] = alias_map_hybrid
-        "Container type(s) used in alias map when hybrid ancestry is indicated"
-        self.alias_map_inv: dict = {}
-        "Defines mapping to make shorter names from longer ones"
-        self.charsets: Sequence[set] = charsets
-        "Defines what's allowed in alias names [0] and sublevel names [1]"
-        self.cumulative_alias: bool = cumulative_alias
-        "Does the alias accumulate (like RSV system) or not (like Pango)"
-        self.max_sublevels: int = max_sublevels
-        "Defines maximum number of sublevels before aliasing must be done"
-        self.root: str = root
-        "Name for the root taxon"
-        self.sep: str = sep
-        "Defines what separates the levels of the name"
-        self.special: Container = special
-        "Defines what aliases are allowed to appear alone"
+        """
+        A Pango-like nomenclature is an AlgorithmicNomenclature with more specific
+        assumptions about the encoding of history.
+
+        Specifically, we assume that the name encodes the history in a string such
+        that the name is a series of (sub)levels denoted by a consistent set of
+        characters (say, digits) separated by a consistent separator (say, r".").
+        The first portion of the name is assumed to be an alias, which is a set of
+        different characters (say, upper case letters) which serve as shorthand
+        for a longer series of levels. The alias is allowed to be cumulative (such
+        as in RSV nomenclature) or not (such as in Pango nomenclature).
+
+        An external file storing the alias shortcuts is required.
+
+        Args:
+            name: nomenclature system name
+            alias_map_path (str): URL or filepath. The indicated place should
+              be a json, which maps from the alias to a longer form of the name
+              (but not necessarily the longest possible form)
+            alias_map_hybrid (Collection[type]): Container type(s) used in alias map when hybrid ancestry is indicated
+            charsets (Sequence[set]): what's allowed in alias names [0] and sublevel names [1]
+            cumulative_alias (bool): Does the alias accumulate (like RSV system) or not (like Pango)
+            max_sublevels (int): maximum number of sublevels before aliasing must be done
+            root (str): name of root taxon
+            sep (str): what separates the levels of the name
+            special (Container): what aliases are allowed to appear alone
+        """
+        self.name = name
+        self.alias_map_path = alias_map_path
+        self.alias_map_hybrid = alias_map_hybrid
+        self.charsets: charsets
+        self.cumulative_alias = cumulative_alias
+        self.max_sublevels = max_sublevels
+        self.root = root
+        self.sep = sep
+        self.special = special
+
+        # load the raw alias map
+        if validators.url(self.alias_map_path):
+            with urllib.request.urlopen(self.alias_map_path) as response:
+                self.alias_map_raw = json.loads(response.read().decode("utf8"))
+        else:
+            with open(self.alias_map_path) as f:
+                self.alias_map_raw = dict(json.load(f))
+
+        # clean the map
+        self.alias_map = self.sanitize_alias_map(self.alias_map_raw)
+        # invert map, to go from shorter to longer
+        self.alias_map_inv = self.invert_alias_map(self.alias_map)
 
     ##############################
     # Superclass implementations #
     ##############################
 
-    def full_histories(
-        self, taxa: Sequence[str], stop_at_hybrid: bool = False
-    ) -> Sequence[Sequence[str]]:
-        if stop_at_hybrid:
-            raise NotImplementedError(
-                "Forests of histories are not currently implemented or supported."
-            )
-        return [self.get_history(taxon, stop_at_hybrid) for taxon in taxa]
+    def history(self, name: str, stop_at_hybrid: bool) -> Sequence[str]:
+        """
+        Get a path of ancestry from the root to this taxon.
 
-    def is_root(self, name: str) -> bool:
-        return name == self.root
+        This is different than a long-form name because it allows us to pass
+        through hybridization (recombination) events. In the face of
+        recombination, when stop_at_hybrid == False, we follow the ancestry of
+        the 5'-most portion of the genome.
+
+        Parameters
+        ----------
+        name : str
+            A taxon's name.
+        stop_at_hybrid : bool
+            Raise error if we hit a hybrid?
+
+        Returns
+        -------
+        int
+            Position of match in taxa, or -1 if no match
+        """
+        if stop_at_hybrid:
+            raise NotImplementedError()
+
+        assert self.alias_map is not None
+
+        if not self.is_valid_name(name):
+            raise ValueError(f"{name} is not a valid name")
+        history = []
+        self.extend_history(name, history, stop_at_hybrid)
+        history.reverse()
+        return history
 
     def is_valid_name(
         self,
@@ -388,7 +416,8 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     # Class methods #
     #################
 
-    def coax_name(self, name: str) -> str:
+    @classmethod
+    def clean_name(cls, name: str) -> str:
         """
         Coax a potentially too-short or too-long name to proper format.
 
@@ -407,11 +436,13 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         str
             The name, without too many or too few sublevels.
         """
-        if self.is_root(name):
+        if cls.is_root(name):
             return name
-        return self.shorter_name(self.longer_name(name))
+        else:
+            return cls.shorter_name(cls.longer_name(name))
 
-    def equals_ignore_alias(self, x: str, y: str) -> bool:
+    @classmethod
+    def equals_ignore_alias(cls, x: str, y: str) -> bool:
         """
         Are two names the same, accounting for aliasing?
 
@@ -430,70 +461,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         bool
             Are the names the same ignoring aliasing?
         """
-        return self.find_ignore_alias(x, [y]) == 0
-
-    def find_ignore_alias(self, taxon: str, taxa: Sequence[str]) -> int:
-        """
-        Find taxon in taxa, comparing long-form names, -1 if no match
-
-        Assumes there is only one match. If there are multiple matches, returns
-        the index of the first.
-
-        For a Pango SARS-CoV-2 example, if taxon="KP.3" and
-        taxa=["JN.1.11.1.3", "JN.1"], we will get 0, because "JN.1.11.1.3" is
-        an equivalent name to "KP.3", ignoring the shortening due to aliases.
-
-        Parameters
-        ----------
-        taxon : str
-            The taxon to be located.
-        taxa : Sequence[str]
-            The taxa in which we search for the taxon
-
-        Returns
-        -------
-        int
-            Position of match in taxa, or -1 if no match
-        """
-        match = -1
-        target_name = self.longer_name(taxon)
-        for i in range(len(taxa)):
-            if target_name == self.longer_name(taxa[i]):
-                match = i
-                break
-        return match
-
-    def get_history(self, name: str, stop_at_hybrid: bool) -> Sequence[str]:
-        """
-        Get a path of ancestry from the root to this taxon.
-
-        This is different than a long-form name because it allows us to pass
-        through hybridization (recombination) events. In the face of
-        recombination, when stop_at_hybrid == False, we follow the ancestry of
-        the 5'-most portion of the genome.
-
-        Parameters
-        ----------
-        taxon : str
-            A taxon's name.
-        taxa : Sequence[str]
-            The taxa in which we search for the taxon
-
-        Returns
-        -------
-        int
-            Position of match in taxa, or -1 if no match
-        """
-        if not self.alias_map:
-            raise RuntimeError(
-                "Cannot obtain histories until setup_alias_map() has been called."
-            )
-        if not self.is_valid_name(name):
-            raise ValueError(name + " is not a valid name in " + self.name())
-        history = []
-        self.extend_history(name, history, stop_at_hybrid)
-        history.reverse()
-        return history
+        return x == cls.longer_name(y) or y == cls.longer_name(x)
 
     def extend_history(
         self, name: str, history: MutableSequence[str], stop_at_hybrid: bool
@@ -520,13 +488,13 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         name = self.longer_name(name)
         comp = self.partition_name(name)
         if not comp[0]:
-            raise ValueError("Invalid name: " + name)
+            raise ValueError(f"Invalid name: {repr(name)}")
         # Digest sublevels
         if comp[1]:
             for i in range(1, len(comp[1]) + 1)[::-1]:
                 history.append(self.unpartition_name([comp[0], comp[1][:i]]))
         # Handle alias
-        alias = self.join(comp[0])
+        alias = self.join_name(comp[0])
         if self.is_root(alias):
             history.append(self.root)
         else:
@@ -537,35 +505,34 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             elif not stop_at_hybrid:
                 self.extend_history(self.alias_map[alias][0], history, stop_at_hybrid)
 
-    def invert_map(self) -> None:
+    @classmethod
+    def invert_alias_map(cls, x: dict) -> dict:
         """
-        Inverts the shorter->longer self.alias_map
+        Inverts the shorter->longer alias map
 
         The inverted alias map is incapable of handling hybridization.
 
         Returns
         -------
-        None
-            The inverted map is stored as self.alias_map_inv
+        dict
+            inverted (longer->shorter) map
         """
         rev_map = {}
-        for k, v in self.alias_map.items():
+        for k, v in x.items():
             if not isinstance(v, list):
                 v = [v]
             for vi in v:
                 # Don't add empty root alias
-                if (not self.is_root(vi)) and (not self.is_hybrid(k)):
+                if (not cls.is_root(vi)) and (not cls.is_hybrid(k)):
                     if vi in rev_map:
                         raise RuntimeError(
-                            "Alias list cannot be inverted. "
-                            + "Trying to add inverse alias for "
-                            + vi
-                            + ", which is an alias of "
-                            + k
-                            + ", but reversed map already has it"
+                            "Alias list cannot be inverted. Trying to add "
+                            f"inverse alias for {vi}, which is an alias of"
+                            f"{k}, but reversed map already has it"
                         )
                     rev_map[vi] = k
-        self.alias_map_inv = rev_map
+
+        return rev_map
 
     def is_alias_map_hybrid(self, alias_value: Any) -> bool:
         """
@@ -584,10 +551,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         bool
             True if the alias map indicates this is a hybrid.
         """
-        for t in self.alias_map_hybrid:
-            if isinstance(alias_value, t):
-                return True
-        return False
+        return any([isinstance(alias_value, t) for t in self.alias_map_hybrid])
 
     @abstractmethod
     def is_special(self, name: str) -> bool:
@@ -632,16 +596,16 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             True if this is a valid alias.
         """
         if self.cumulative_alias:
-            return all([set(a) < self.charsets[0] for a in self.split(alias)])
+            return all([set(a) < self.charsets[0] for a in self.split_name(alias)])
         else:
             return set(alias) < self.charsets[0]
 
-    def join(self, comp: Sequence[str]) -> str:
+    def join_name(self, comp: Sequence[str]) -> str:
         """
         Join list of component levels into name.
 
-        The inverse of self.split(name), such that
-        self.join(self.split(name)) == name.
+        The inverse of self.split_name(name), such that
+        self.join_name(self.split_name(name)) == name.
 
         Parameters
         ----------
@@ -719,21 +683,19 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         parts = self.partition_name(name)
         n = self.max_sublevels * depth
         alias = None
-        # print("Trying to find shorter form of " + name)
+
         for k, v in self.alias_map_inv.items():
             kl = self.partition_name(k)
-            # print(">> " + str(k) + " : " + str(v))
-            # print(">>>> " + str(kl[1]) + " == " + str(parts[1]))
-            # print(">>>> " + str(self.partition_name(self.longer_name(k))[1][:n]) + " == " + str(parts[1][:n]))
-            if (
-                kl[1] == parts[1]
-                or self.partition_name(self.longer_name(k))[1][:n]
+            if kl[1] == parts[1] or (
+                self.partition_name(self.longer_name(k))[1][:n]
                 == self.partition_name(self.longer_name(name))[1][:n]
             ):
                 alias = v
                 break
+
         if not alias:
-            raise RuntimeError("Cannot find shorter alias for " + name)
+            raise RuntimeError(f"Cannot find shorter alias for {repr(name)}")
+
         return alias
 
     def num_sublevels(self, name: str) -> int:
@@ -772,7 +734,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             First element is Sequence of components in the aliasing portion of
             the taxon's name, second element is Sequence of sublevels.
         """
-        comp = self.split(name)
+        comp = self.split_name(name)
         if not self.cumulative_alias:
             alias = [] if len(comp) == 0 else [comp[0]]
             sublevels = [] if len(comp) < 2 else comp[1:]
@@ -790,7 +752,8 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         sublevels = [comp[-1]] if n == 1 else comp[(len(comp) - n + 1) :]
         return [alias, sublevels]
 
-    def sanitize_map(self) -> None:
+    @classmethod
+    def sanitize_alias_map(cls, x: dict) -> dict:
         """
         Drop ambiguity markers and check all names are valid.
 
@@ -799,74 +762,45 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
 
         Returns
         -------
-        None
-            Modifies self.alias_map in-place
+        dict
+            new alias map
         """
-        if not self.alias_map:
-            raise RuntimeError("Missing self.alias_map when trying to sanitize.")
+        # make a copy of the input map, to not edit in-place
+        x = dict(x)
 
-        for k, v in self.alias_map.items():
-            if not self.is_valid_alias(k):
-                raise RuntimeError("Found invalid taxon as key in alias list: " + k)
-            if self.is_ambiguous(k):
-                raise RuntimeError("Found ambiguous taxon as key in alias list: " + k)
-            if not self.is_alias_map_hybrid(v):
-                if self.is_root(v):
-                    if not self.is_special(k):
-                        raise RuntimeError(
-                            'Found alias for root in taxon not listed as special: "'
-                            + k
-                            + '"'
-                        )
-                else:
-                    v = [v]
+        for k, v in x.items():
+            # check for validity, ambiguity, and valid root mapping
+            if not cls.is_valid_alias(k):
+                raise RuntimeError(
+                    f"Found invalid taxon {repr(k)} as key in alias list"
+                )
+            if cls.is_ambiguous(k):
+                raise RuntimeError(
+                    f"Found ambiguous taxon {repr(k)} as key in alias list"
+                )
+            if (
+                not cls.is_alias_map_hybrid(v)
+                and cls.is_root(v)
+                and not cls.is_special(k)
+            ):
+                raise RuntimeError(
+                    f"Found alias for root in taxon not listed as special: {repr(k)}"
+                )
+
+            # ensure list
+            if not cls.is_alias_map_hybrid(v) and not cls.is_root(v):
+                v = [v]
+
             for i in range(len(v)):
-                if self.is_ambiguous(v[i]):
+                if cls.is_ambiguous(v[i]):
                     v[i] = v[i][:-1]
-                if not self.is_valid_name(v[i], max_sublevels=integer_inf):
+                if not cls.is_valid_name(v[i], max_sublevels=integer_inf):
                     raise RuntimeError(
-                        'Found invalid taxon as value in alias list: "'
-                        + v[i]
-                        + '" (for key "'
-                        + k
-                        + '")'
+                        f"Found invalid taxon {repr(v[i])} as value in alias list "
+                        f"(with key {repr(k)})"
                     )
 
-    def setup_alias_map(self, fp: Optional[str], url: Optional[str]) -> None:
-        """
-        Aliasing schemes come from either local or remote json files
-
-        The json is assumed to be a map from the alias to a longer form of the name (but not necessarily the longest possible form)
-
-        Parameters
-        ----------
-        fp : Optional[str]
-            File path of local json file containing the alias map.
-        url : Optional[str]
-            URL of online json file containing the alias map.
-
-        Must  supply one of fp or url.
-
-        Returns
-        -------
-        None
-            Reads the alias map and stores it in self.alias_map, then calls
-            self.sanitize_map() and self.invert_map().
-        """
-        # Should we be thinking about encoding and/or defensive measures?
-        if fp:
-            alias_file = open(fp)
-            alias = json.load(alias_file)
-            alias_file.close()
-            self.alias_map = dict(alias)
-        elif url:
-            with urllib.request.urlopen(url) as response:
-                self.alias_map = json.loads(response.read().decode("utf8"))
-        else:
-            raise RuntimeError("Must supply either file path or URL to alias json")
-
-        self.sanitize_map()
-        self.invert_map()
+        return x
 
     def shorter_name(self, name: str) -> str:
         """
@@ -898,12 +832,12 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             lvl += 1
         return self.unpartition_name(comp)
 
-    def split(self, name: str) -> Sequence[str]:
+    def split_name(self, name: str) -> Sequence[str]:
         """
         Split name into component levels
 
-        The inverse of self.join(name), such that
-        self.split(self.join(components)) == components.
+        The inverse of self.join_name(name), such that
+        self.split_name(self.join_name(components)) == components.
 
         Parameters
         ----------
@@ -932,7 +866,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         str
             The taxon's name as a single string.
         """
-        return self.join([*components[0], *components[1]])
+        return self.join_name([*components[0], *components[1]])
 
 
 class PangoNomenclature(PangoLikeNomenclature):
@@ -976,12 +910,7 @@ class PangoNomenclature(PangoLikeNomenclature):
         bool
             True if the name is ambiguous.
         """
-        if self.is_root(name):
-            return False
-        elif str(name)[-1] == self.ambiguity:
-            return True
-        else:
-            return False
+        return not self.is_root(name) and str(name)[-1] == self.ambiguity
 
     def is_hybrid(self, name: str) -> bool:
         """
@@ -1000,12 +929,7 @@ class PangoNomenclature(PangoLikeNomenclature):
         bool
             True if the name is a hybrid.
         """
-        if self.is_root(name):
-            return False
-        elif name[0] == "X":
-            return True
-        else:
-            return False
+        return not self.is_root(name) and name[0] == "X"
 
     def is_special(self, name: str) -> bool:
         return name in self.special or (
@@ -1038,9 +962,11 @@ class PangoNomenclature(PangoLikeNomenclature):
         bool
             True if this is a valid name under the Pango nomenclature.
         """
-        if self.is_special(name) or self.is_hybrid(name):
-            return True
-        return super().is_valid_name(name, min_sublevels, max_sublevels)
+        return (
+            self.is_special(name)
+            or self.is_hybrid(name)
+            or super().is_valid_name(name, min_sublevels, max_sublevels)
+        )
 
 
 class PangoSc2Nomenclature(PangoNomenclature):

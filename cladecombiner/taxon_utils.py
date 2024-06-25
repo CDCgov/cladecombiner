@@ -54,7 +54,7 @@ def read_taxa(
                         "The name "
                         + line[:-1]
                         + " is not valid under the provided nomenclature ("
-                        + str(nomenclature)
+                        + nomenclature.name
                         + ")"
                     )
             taxon = Taxon(line[:-1], is_tip[i])

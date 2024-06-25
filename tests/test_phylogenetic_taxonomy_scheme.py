@@ -3,9 +3,15 @@ import copy
 import dendropy
 import pytest
 
+from typing import Sequence, Any
+
 from cladecombiner import Taxon
 from cladecombiner.tree_utils import fully_labeled_trees_same
-from cladecombiner.utils import table_equal
+
+
+def table(lst: Sequence[Any]):
+    """Given a sequence, return a dictionary {unique element: counts of that element}"""
+    return {x: lst.count(x) for x in set(lst)}
 
 
 def test_ancestors(pango_phylo_taxonomy):
@@ -32,7 +38,7 @@ def test_children(pango_phylo_taxonomy):
         Taxon("XA.12", is_tip=False),
     ]
     xa_children_obs = pango_phylo_taxonomy.children(Taxon("XA", is_tip=False))
-    assert table_equal(xa_children_obs, xa_children_exp)
+    assert table(xa_children_obs) == table(xa_children_exp)
 
     assert len(pango_phylo_taxonomy.children(Taxon("A", is_tip=True))) == 0
 
@@ -69,7 +75,7 @@ def test_descendants(pango_phylo_taxonomy):
     xa_desc_obs = pango_phylo_taxonomy.descendants(
         Taxon("XA", is_tip=False), tip_only=False
     )
-    assert table_equal(xa_desc_obs, xa_desc_exp)
+    assert table(xa_desc_obs) == table(xa_desc_exp)
 
     xa_desc_exp = [
         Taxon("XA", is_tip=True),
@@ -79,7 +85,7 @@ def test_descendants(pango_phylo_taxonomy):
     xa_desc_obs = pango_phylo_taxonomy.descendants(
         Taxon("XA", is_tip=False), tip_only=True
     )
-    assert table_equal(xa_desc_obs, xa_desc_exp)
+    assert table(xa_desc_obs) == table(xa_desc_exp)
 
 
 def test_mrca(pango_phylo_taxonomy):
@@ -111,9 +117,9 @@ def test_parents(pango_phylo_taxonomy):
     with pytest.raises(Exception):
         pango_phylo_taxonomy.parents(Taxon("B.2", is_tip=True))
 
-    assert pango_phylo_taxonomy.parents(
-        Taxon("A.1.1.2", is_tip=True)
-    ) == Taxon("A.1.1", is_tip=False)
+    assert pango_phylo_taxonomy.parents(Taxon("A.1.1.2", is_tip=True)) == Taxon(
+        "A.1.1", is_tip=False
+    )
 
     assert pango_phylo_taxonomy.parents(Taxon("A.2", is_tip=False)) == Taxon(
         "A", is_tip=False
