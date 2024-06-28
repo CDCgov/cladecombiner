@@ -18,7 +18,8 @@ class Nomenclature(ABC):
     """
     Abstract class for most general casting of Nomenclature
 
-    Nomenclature concerns rules for naming taxa, and what names may imply about those taxa.
+    Nomenclature concerns rules for naming taxa, and what names may imply about
+    those taxa.
     """
 
     @abstractmethod
@@ -26,7 +27,8 @@ class Nomenclature(ABC):
         """
         Does this name indicate an ambiguous taxon?
 
-        Ambiguity means a taxon known only to a higher level than to which resolution is possible.
+        Ambiguity means a taxon specified only to a higher level than to which
+        resolution is possible.
 
         Returns
         -------
@@ -39,6 +41,8 @@ class Nomenclature(ABC):
     def is_hybrid(self, name: str) -> bool:
         """
         Does this name indicate a hybrid?
+
+        Hybrid taxa have more than one parent taxon.
 
         Parameters
         ----------
@@ -54,7 +58,9 @@ class Nomenclature(ABC):
     @abstractmethod
     def is_root(self, name: str) -> bool:
         """
-        Does this string specify the root taxon (to which all other taxa belong)?
+        Does this string specify the root taxon?
+
+        The root taxon includes all taxa in the nomenclature scheme.
 
         Parameters
         ----------
