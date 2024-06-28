@@ -92,7 +92,7 @@ class Nomenclature(ABC):
     @abstractmethod
     def name(self) -> str:
         """
-        Name of this nomenclature scheme
+        Name of this nomenclature scheme.
 
         Returns
         -------
