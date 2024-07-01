@@ -451,38 +451,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         bool
             Are the names the same ignoring aliasing?
         """
-        return self.find_ignore_alias(x, [y]) == 0
-
-    def find_ignore_alias(self, taxon: str, taxa: Sequence[str]) -> int:
-        """
-        Find taxon in taxa, comparing long-form names, -1 if no match
-
-        Assumes there is only one match. If there are multiple matches, returns
-        the index of the first.
-
-        For a Pango SARS-CoV-2 example, if taxon="KP.3" and
-        taxa=["JN.1.11.1.3", "JN.1"], we will get 0, because "JN.1.11.1.3" is
-        an equivalent name to "KP.3", ignoring the shortening due to aliases.
-
-        Parameters
-        ----------
-        taxon : str
-            The taxon to be located.
-        taxa : Sequence[str]
-            The taxa in which we search for the taxon
-
-        Returns
-        -------
-        int
-            Position of match in taxa, or -1 if no match
-        """
-        match = -1
-        target_name = self.longer_name(taxon)
-        for i in range(len(taxa)):
-            if target_name == self.longer_name(taxa[i]):
-                match = i
-                break
-        return match
+        return self.longer_name(x) == self.longer_name(y)
 
     def get_history(self, name: str, stop_at_hybrid: bool) -> Sequence[str]:
         """
