@@ -27,8 +27,14 @@ class Nomenclature(ABC):
         """
         Does this name indicate an ambiguous taxon?
 
-        Ambiguity means a taxon specified only to a higher level than to which
-        resolution is possible.
+        A taxon is "ambiguous" if its name does not provide enough information
+        to place it as a node on a taxonomy tree.
+
+        For example, the SARS-CoV-2 Pango lineage designation BA.1*, which
+        designates some taxon that is a descendent of the ancestral BA.1 taxon,
+        is ambiguous. (In the literature, "BA.1*" is also used to mean the
+        ancestral BA.1 taxon and all its descendants, which is a meaning
+        incompatible with this package.)
 
         Returns
         -------
