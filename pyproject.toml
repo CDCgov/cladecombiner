@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "cladecombiner"
+version = "0.1.0"
+description = "Lineage aggregation tool, e.g. to combine Pango lineages of SARS-CoV-2"
+authors = ["Andy Magee <rzg0@cdc.gov>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dendropy = "^5.0.1"
+pytest = "^8.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
