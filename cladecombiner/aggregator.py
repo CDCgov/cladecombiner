@@ -3,7 +3,9 @@ from collections.abc import Iterable, MutableSequence
 from copy import copy
 from dataclasses import dataclass
 
+from .ordered_taxon import OrderedTaxon
 from .taxon import Taxon
+from .taxonomy_scheme import PhylogeneticTaxonomyScheme
 
 
 @dataclass
@@ -91,7 +93,7 @@ class Aggregator(ABC):
                     # Self-mappings are possible
                     break
                 taxon_to = self.messy_map[taxon_to]
-            taxon_map[taxon_from] = taxon_to
+            taxon_map[taxon_from.name] = taxon_to.name
         return taxon_map
 
     def resolve_agg_step(self, mapping: TaxonMapping):
@@ -143,7 +145,6 @@ class FixedAggregator(BoilerplateAggregator):
         done = {}
         for taxon_from in taxa:
             taxon_to = Taxon(self.fixed_map[taxon_from.name], False)
-            print("++++++ Mapping " + str(taxon_from) + " to " + str(taxon_to))
             map[taxon_from] = taxon_to
             done[taxon_to] = True
 
@@ -153,32 +154,50 @@ class FixedAggregator(BoilerplateAggregator):
         return [self.stack[0]]
 
 
-# class FixedAggregator(Aggregator):
+class BasicPhylogeneticAggregator(BoilerplateAggregator):
+    def __init__(
+        self,
+        unaggregated: Iterable[Taxon],
+        targets: Iterable[Taxon],
+        taxonomy_scheme: PhylogeneticTaxonomyScheme,
+        sort_clades: bool = True,
+    ):
+        super().__init__(in_taxa=[taxon for taxon in unaggregated])
+        self.cached_target = None
+        self.cached_taxa = None
+        self.targets = [taxon for taxon in targets]
+        if sort_clades:
+            ordered_taxa = [
+                OrderedTaxon("", False, taxonomy_scheme).from_taxon(
+                    taxon, taxonomy_scheme
+                )
+                for taxon in targets
+            ]
+            ordered_taxa.sort()
+            self.targets = [otaxon.to_taxon() for otaxon in ordered_taxa]
+        # So .pop() executes these in the expected order
+        self.targets.reverse()
+        self.taxonomy_scheme = taxonomy_scheme
 
-#     def __init__(self, taxa_in: Iterable[str], map: dict[str, str]):
-#         self.fixed_map = map
-#         self._input_taxa = [Taxon(taxon, False) for taxon in taxa_in]
-#         self._last_target = Taxon("", False)
-#         self._stack = self._input_taxa
-#         self._map = {}
-#         self._messy_map = {}
+    def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
+        assert isinstance(self.cached_target, Taxon)
+        assert taxa is self.cached_taxa
+        map = {}
+        for taxon in taxa:
+            map[taxon] = self.cached_target
+        done = {self.cached_target: True}
+        return TaxonMapping(map, done)
 
-#     @property
-#     def input_taxa(self):
-#         return self._input_taxa
-
-#     @property
-#     def last_target(self):
-#         return self._last_target
-
-#     @property
-#     def stack(self):
-#         return self._stack
-
-#     @property
-#     def map(self):
-#         return self._map
-
-#     @property
-#     def messy_map(self):
-#         return self._messy_map
+    def next_taxa(self) -> Iterable[Taxon]:
+        if len(self.targets) > 0:
+            self.cached_target = self.targets.pop()
+            children = self.taxonomy_scheme.descendants(
+                self.cached_target, True
+            )
+            self.cached_taxa = [
+                taxon for taxon in self.stack if taxon in children
+            ]
+        else:
+            self.cached_target = Taxon("Other", False)
+            self.cached_taxa = self.stack
+        return self.cached_taxa

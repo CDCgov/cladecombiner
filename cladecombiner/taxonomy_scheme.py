@@ -13,7 +13,6 @@ class TaxonomyScheme(ABC):
     Allows hybridization-induced multiple ancestry.
     """
 
-    @abstractmethod
     def ancestors(self, taxon: Taxon) -> Collection[Taxon]:
         """
         All taxa which are between this taxon and the root (including the root).
