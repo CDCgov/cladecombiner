@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, MutableSequence
 from copy import copy
 from dataclasses import dataclass
+from warnings import warn
 
 from .ordered_taxon import OrderedTaxon
 from .taxon import Taxon
@@ -232,6 +233,7 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
         sort_clades: bool = True,
         unmapped_are_other: bool = True,
+        warn: bool = True,
     ):
         """
         BasicPhylogeneticAggregator constructor.
@@ -261,9 +263,10 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
             will be mapped to themselves.
         """
         super().__init__(in_taxa=[taxon for taxon in unaggregated])
-        self.cached_target = None
-        self.cached_taxa = None
+        self._cached_target = None
+        self._cached_taxa = None
         self.targets = [taxon for taxon in targets]
+        self._input_targets = copy(self.targets)
         if sort_clades:
             ordered_taxa = [
                 OrderedTaxon("", False, taxonomy_scheme).from_taxon(
@@ -277,35 +280,50 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
         self.targets.reverse()
         self.taxonomy_scheme = taxonomy_scheme
         self.agg_other = unmapped_are_other
+        self.warn = warn
 
     def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
-        assert isinstance(self.cached_target, Taxon)
-        assert taxa is self.cached_taxa
+        assert isinstance(self._cached_target, Taxon)
+        assert taxa is self._cached_taxa
         map = {}
         for taxon in taxa:
-            map[taxon] = self.cached_target
-        done = {self.cached_target: True}
+            map[taxon] = self._cached_target
+        done = {self._cached_target: True}
         return TaxonMapping(map, done)
 
     def next_taxa(self) -> Iterable[Taxon]:
         if len(self.targets) > 0:
-            self.cached_target = self.targets.pop()
+            self._cached_target = self.targets.pop()
             children = self.taxonomy_scheme.descendants(
-                self.cached_target, True
+                self._cached_target, True
             )
-            self.cached_taxa = [
+            self._cached_taxa = [
                 taxon for taxon in self.stack if taxon in children
             ]
         elif self.agg_other:
-            self.cached_target = Taxon("other", False)
-            self.cached_taxa = self.stack
+            self._cached_target = Taxon("other", False)
+            self._cached_taxa = self.stack
         else:
-            self.cached_target = self.stack[-1]
-            self.cached_taxa = [self.cached_target]
+            self._cached_target = self.stack[-1]
+            self._cached_taxa = [self._cached_target]
             print(
                 "++++ Mapping otherwise unmapped taxon "
-                + str(self.cached_target)
+                + str(self._cached_target)
                 + " to "
-                + str(self.cached_target)
+                + str(self._cached_target)
             )
-        return self.cached_taxa
+        return self._cached_taxa
+
+    def _valid_mapping(self):
+        super()._valid_mapping()
+        if self.warn:
+            used_targets = set(self.map().values())
+            unused_targets = [
+                target.name
+                for target in self._input_targets
+                if target.name not in used_targets
+            ]
+            if len(unused_targets) > 0:
+                warn(
+                    f"The aggregation does not make use of the following input targets: {unused_targets}."
+                )
