@@ -6,12 +6,13 @@ from dataclasses import dataclass
 from .ordered_taxon import OrderedTaxon
 from .taxon import Taxon
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
+from .utils import table
 
 
 @dataclass
 class TaxonMapping:
     """
-    Class for tracking proposed step in aggregation process
+    Class for tracking proposed step in aggregation process.
     """
 
     map: dict[Taxon, Taxon]
@@ -47,6 +48,26 @@ class Aggregator(ABC):
         """
         pass
 
+    def _valid_mapping(self):
+        """
+        Checks that all input taxa have been mapped exactly once.
+        """
+        in_str = [taxon.name for taxon in self.input_taxa]
+        map = self.map()
+        if set(map.keys()) != set(in_str):
+            raise RuntimeError(
+                "Mismatch between mapped taxa and input taxa. Input taxa are: "
+                + str(in_str)
+                + " but mapped taxa are "
+                + str(map.keys())
+            )
+        tab = table(map)
+        if not all(v == 1 for v in tab.values()):
+            raise RuntimeError(
+                "Found following taxa mapped more than once: "
+                + str([k for k, v in tab.items() if v > 1])
+            )
+
     def aggregate(self):
         """
         Perform aggregation. When done, results may be collected with self.map().
@@ -58,6 +79,8 @@ class Aggregator(ABC):
             step = self.next_agg_step(taxa_in)
             self.check_agg_step(step)
             self.resolve_agg_step(step)
+
+        self._valid_mapping()
 
     def check_agg_step(self, mapping: TaxonMapping):
         """
@@ -79,7 +102,7 @@ class Aggregator(ABC):
         """
         pass
 
-    def map(self):
+    def map(self) -> dict[str, str]:
         """
         Create clean {Taxon from : Taxon to} aggregation dictionary.
         """
@@ -108,15 +131,24 @@ class Aggregator(ABC):
 
 class BoilerplateAggregator(Aggregator):
     """
-    A mostly-instantiated Aggregator. Descendants need only implement next_agg_step() and next_taxa()
+    A mostly-instantiated Aggregator. Descendants need only implement next_agg_step() and next_taxa().
     """
 
     def __init__(
         self,
         in_taxa: Iterable[Taxon],
     ):
+        """
+        BoilerplateAggregator constructor.
+
+        This class is partially-abstract and should not be used directly.
+
+        Parameters
+        ----------
+        in_taxa : Iterable[Taxon]
+            The taxa we wish to aggregate.
+        """
         self._input_taxa = in_taxa
-        self._last_target = Taxon("", False)
         self._stack = list(copy(self._input_taxa))
         self._messy_map = {}
 
@@ -134,17 +166,46 @@ class BoilerplateAggregator(Aggregator):
 
 
 class FixedAggregator(BoilerplateAggregator):
-    def __init__(self, names_to_aggregate: Iterable[str], map: dict[str, str]):
+    """
+    Aggregation via a user-provided dictionary.
+    """
+
+    def __init__(
+        self,
+        unaggregated: Iterable[str],
+        map: dict[str, str],
+        create_tip_taxa: bool = False,
+    ):
+        """
+        FixedAggregator constructor.
+
+        Parameters
+        ----------
+        unaggregated : Iterable[str]
+            The taxa we wish to aggregate, as strings.
+
+        map : dict[str, str]
+            Dictionary mapping the input taxa to their final units.
+
+        create_tip_taxa : bool
+            Should the taxa we create be labeled as tips or not?
+
+        Returns
+        -------
+        Taxon
+            The taxon's parent, or None if this is the root.
+        """
         super().__init__(
-            in_taxa=[Taxon(nm, False) for nm in names_to_aggregate],
+            in_taxa=[Taxon(nm, False) for nm in unaggregated],
         )
         self.fixed_map = map
+        self.make_tip = create_tip_taxa
 
     def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
         map = {}
         done = {}
         for taxon_from in taxa:
-            taxon_to = Taxon(self.fixed_map[taxon_from.name], False)
+            taxon_to = Taxon(self.fixed_map[taxon_from.name], self.make_tip)
             map[taxon_from] = taxon_to
             done[taxon_to] = True
 
@@ -155,13 +216,45 @@ class FixedAggregator(BoilerplateAggregator):
 
 
 class BasicPhylogeneticAggregator(BoilerplateAggregator):
+    """
+    An aggregator which maps a set of input taxa to a fixed set of aggregation targets using a tree.
+    """
+
     def __init__(
         self,
         unaggregated: Iterable[Taxon],
         targets: Iterable[Taxon],
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
         sort_clades: bool = True,
+        unmapped_are_other: bool = True,
     ):
+        """
+        BasicPhylogeneticAggregator constructor.
+
+        Parameters
+        ----------
+        unaggregated : Iterable[Taxon]
+            The taxa we wish to aggregate.
+
+        targets : Iterable[Taxon]
+            The taxa into which we wish to map the unaggregated taxa.
+
+        taxonomy_scheme : PhylogeneticTaxonomyScheme
+            The tree which we use to do the mapping.
+
+        sort_clades : bool
+            If False, mapping is done using the taxa as ordered in `targets`.
+            If True, `targets` are taxonomically sorted so that so that larger
+            `targets` do not override smaller ones. For example, if BA.2 and
+            BA.2.86 are both aggregation targets, sort_clades = True would handle
+            BA.2.86 first, such that JN.1 would map to BA.2.86, while BG.1 would
+            map to BA.2. If BA.2 is processed first, both will map to it.
+
+        unmapped_are_other : bool
+            If True, any taxon found in the input list which does not fall into
+            a target will be mapped to Taxon("other"). If False, any such taxa
+            will be mapped to themselves.
+        """
         super().__init__(in_taxa=[taxon for taxon in unaggregated])
         self.cached_target = None
         self.cached_taxa = None
@@ -178,6 +271,7 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
         # So .pop() executes these in the expected order
         self.targets.reverse()
         self.taxonomy_scheme = taxonomy_scheme
+        self.agg_other = unmapped_are_other
 
     def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
         assert isinstance(self.cached_target, Taxon)
@@ -197,7 +291,10 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
             self.cached_taxa = [
                 taxon for taxon in self.stack if taxon in children
             ]
-        else:
+        elif self.agg_other:
             self.cached_target = Taxon("Other", False)
             self.cached_taxa = self.stack
+        else:
+            self.cached_target = self.stack.pop()
+            self.cached_taxa = [self.cached_target]
         return self.cached_taxa

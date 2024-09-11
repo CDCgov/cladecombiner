@@ -8,7 +8,9 @@ from .taxonomy_scheme import TreelikeTaxonomyScheme
 @total_ordering
 class OrderedTaxon(Taxon):
     """
-    A Taxon equipped with a TreelikeTaxonomyScheme which we can sort.
+    A Taxon equipped with a TreelikeTaxonomyScheme which can be sorted.
+
+    For the purposes of comparison, "A < B" means "A is contained within B (but is not B)."
     """
 
     def __init__(

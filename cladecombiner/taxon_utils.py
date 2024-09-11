@@ -9,9 +9,9 @@ from .taxonomy_scheme import TaxonomyScheme
 
 def read_taxa(
     fp: str,
-    is_tip: bool | Sequence[bool],
-    nomenclature: Optional[Nomenclature],
-    taxonomy_scheme: Optional[TaxonomyScheme],
+    is_tip: bool | Sequence[bool] = True,
+    nomenclature: Optional[Nomenclature] = None,
+    taxonomy_scheme: Optional[TaxonomyScheme] = None,
 ) -> Sequence[Taxon]:
     """
     Reads in taxa as a list of Taxon objects.
@@ -36,6 +36,11 @@ def read_taxa(
     Sequence[Taxon]
         Container of the taxa as Taxon objects.
     """
+    if nomenclature is not None:
+        assert isinstance(nomenclature, Nomenclature)
+
+    if taxonomy_scheme is not None:
+        assert isinstance(nomenclature, TaxonomyScheme)
 
     ext = path.splitext(fp)[1]
     taxa = []
