@@ -48,6 +48,16 @@ class Aggregator(ABC):
         """
         pass
 
+    def _valid_agg_step(self, mapping: TaxonMapping):
+        """
+        Check that this proposed merge move is acceptable
+        """
+        unknown = [k for k in mapping.map.keys() if k not in self.stack]
+        if len(unknown) > 0:
+            raise RuntimeError(
+                f"Tried to map {unknown} which is not in current stack {self.stack}."
+            )
+
     def _valid_mapping(self):
         """
         Checks that all input taxa have been mapped exactly once.
@@ -75,18 +85,13 @@ class Aggregator(ABC):
         In the interim, self.messy_map is populated with the results of aggregation.
         """
         while self.stack:
+            print(f"++ Iterating, len(self.stack) = {str(len(self.stack))} ++")
             taxa_in = self.next_taxa()
             step = self.next_agg_step(taxa_in)
-            self.check_agg_step(step)
+            self._valid_agg_step(step)
             self.resolve_agg_step(step)
 
         self._valid_mapping()
-
-    def check_agg_step(self, mapping: TaxonMapping):
-        """
-        Check that this proposed merge move is acceptable
-        """
-        assert all(key in self.stack for key in mapping.map)
 
     @abstractmethod
     def next_taxa(self) -> Iterable[Taxon]:
@@ -292,9 +297,15 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
                 taxon for taxon in self.stack if taxon in children
             ]
         elif self.agg_other:
-            self.cached_target = Taxon("Other", False)
+            self.cached_target = Taxon("other", False)
             self.cached_taxa = self.stack
         else:
-            self.cached_target = self.stack.pop()
+            self.cached_target = self.stack[-1]
             self.cached_taxa = [self.cached_target]
+            print(
+                "++++ Mapping otherwise unmapped taxon "
+                + str(self.cached_target)
+                + " to "
+                + str(self.cached_target)
+            )
         return self.cached_taxa
