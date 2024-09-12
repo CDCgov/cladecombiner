@@ -86,7 +86,6 @@ class Aggregator(ABC):
         In the interim, self.messy_map is populated with the results of aggregation.
         """
         while self.stack:
-            print(f"++ Iterating, len(self.stack) = {str(len(self.stack))} ++")
             taxa_in = self.next_taxa()
             step = self.next_agg_step(taxa_in)
             self._valid_agg_step(step)
@@ -306,12 +305,6 @@ class BasicPhylogeneticAggregator(BoilerplateAggregator):
         else:
             self._cached_target = self.stack[-1]
             self._cached_taxa = [self._cached_target]
-            print(
-                "++++ Mapping otherwise unmapped taxon "
-                + str(self._cached_target)
-                + " to "
-                + str(self._cached_target)
-            )
         return self._cached_taxa
 
     def _valid_mapping(self):
