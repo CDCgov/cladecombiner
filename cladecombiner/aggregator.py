@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, MutableSequence
+from collections.abc import Iterable
 from copy import copy
 from dataclasses import dataclass
 from warnings import warn
@@ -23,31 +23,30 @@ class TaxonMapping:
 
 
 class Aggregator(ABC):
-    """ """
+    """
+    A partially-abstract base class for aggregation.
 
-    @property
-    @abstractmethod
-    def input_taxa(self) -> Iterable[Taxon]:
-        """
-        The taxa which are to be aggregated.
-        """
-        pass
+    Descendants need only implement next_agg_step() and next_taxa() to create a usable aggregation object.
+    """
 
-    @property
-    @abstractmethod
-    def messy_map(self) -> dict[Taxon, Taxon]:
+    def __init__(
+        self,
+        in_taxa: Iterable[Taxon],
+    ):
         """
-        A record of the entire history of aggregation of all taxa.
-        """
-        pass
+        Constructor for aggregation infrastructure shared by all subclasses.
 
-    @property
-    @abstractmethod
-    def stack(self) -> MutableSequence[Taxon]:
+        Parameters
+        ----------
+        in_taxa : Iterable[Taxon]
+            The taxa we wish to aggregate.
         """
-        Taxa that still need to be aggregated.
-        """
-        pass
+        self.input_taxa = list(in_taxa)
+        "The taxa we wish to aggregate."
+        self.stack = copy(self.input_taxa)
+        "Taxa that still need to be aggregated."
+        self.messy_map = {}
+        "A record of the entire history of aggregation of all taxa."
 
     def _valid_agg_step(self, mapping: TaxonMapping):
         """
@@ -134,43 +133,7 @@ class Aggregator(ABC):
                 self.stack.append(k)
 
 
-class BoilerplateAggregator(Aggregator):
-    """
-    A mostly-instantiated Aggregator. Descendants need only implement next_agg_step() and next_taxa().
-    """
-
-    def __init__(
-        self,
-        in_taxa: Iterable[Taxon],
-    ):
-        """
-        BoilerplateAggregator constructor.
-
-        This class is partially-abstract and should not be used directly.
-
-        Parameters
-        ----------
-        in_taxa : Iterable[Taxon]
-            The taxa we wish to aggregate.
-        """
-        self._input_taxa = in_taxa
-        self._stack = list(copy(self._input_taxa))
-        self._messy_map = {}
-
-    @property
-    def input_taxa(self):
-        return self._input_taxa
-
-    @property
-    def messy_map(self) -> dict[Taxon, Taxon]:
-        return self._messy_map
-
-    @property
-    def stack(self) -> MutableSequence[Taxon]:
-        return self._stack
-
-
-class FixedAggregator(BoilerplateAggregator):
+class FixedAggregator(Aggregator):
     """
     Aggregation via a user-provided dictionary.
     """
@@ -220,7 +183,7 @@ class FixedAggregator(BoilerplateAggregator):
         return [self.stack[0]]
 
 
-class BasicPhylogeneticAggregator(BoilerplateAggregator):
+class BasicPhylogeneticAggregator(Aggregator):
     """
     An aggregator which maps a set of input taxa to a fixed set of aggregation targets using a tree.
     """
