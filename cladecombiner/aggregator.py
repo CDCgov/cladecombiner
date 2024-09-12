@@ -226,6 +226,32 @@ class BasicPhylogeneticAggregator(Aggregator):
         self.agg_other = unmapped_are_other
         self.warn = warn
 
+    def _valid_agg_step(self, mapping: TaxonMapping):
+        super()._valid_agg_step(mapping)
+        unknown_taxa = [
+            taxon
+            for taxon in mapping.done.keys()
+            if not self.taxon_is_valid(taxon)
+        ]
+        if len(unknown_taxa) > 0:
+            raise RuntimeError(
+                f"Aggregation step resulted in the following taxa unknown to the provided taxonomy scheme: {unknown_taxa}"
+            )
+
+    def _valid_mapping(self):
+        super()._valid_mapping()
+        if self.warn:
+            used_targets = set(self.map().values())
+            unused_targets = [
+                target.name
+                for target in self._input_targets
+                if target.name not in used_targets
+            ]
+            if len(unused_targets) > 0:
+                warn(
+                    f"The aggregation does not make use of the following input targets: {unused_targets}."
+                )
+
     def next_agg_step(self) -> TaxonMapping:
         if len(self.targets) > 0:
             target = self.targets.pop()
@@ -244,16 +270,9 @@ class BasicPhylogeneticAggregator(Aggregator):
         done = {target: True}
         return TaxonMapping(map, done)
 
-    def _valid_mapping(self):
-        super()._valid_mapping()
-        if self.warn:
-            used_targets = set(self.map().values())
-            unused_targets = [
-                target.name
-                for target in self._input_targets
-                if target.name not in used_targets
-            ]
-            if len(unused_targets) > 0:
-                warn(
-                    f"The aggregation does not make use of the following input targets: {unused_targets}."
-                )
+    def taxon_is_valid(self, taxon: Taxon) -> bool:
+        if self.taxonomy_scheme.is_valid_taxon(taxon):
+            return True
+        elif self.agg_other and taxon == Taxon("other", False):
+            return True
+        return False
