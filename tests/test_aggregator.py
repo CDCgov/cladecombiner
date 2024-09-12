@@ -2,6 +2,7 @@ import pytest
 
 from cladecombiner import (
     BasicPhylogeneticAggregator,
+    FixedAggregator,
     PhylogeneticTaxonomyScheme,
     Taxon,
     read_taxa,
@@ -25,6 +26,32 @@ def expected_one_agg():
         "FLYING.123.7",
     ]
     return expected
+
+
+def test_nocombiner(pango_with_toy_alias):
+    expected = {
+        "LIFE.1": "ARBITRARYTAXON.0",
+        "LIFE.1.2": "ARBITRARYTAXON.1",
+        "LIFE.123": "ARBITRARYTAXON.1",
+        "LIFE.7": "ARBITRARYTAXON.1",
+        "FLYING.8472.1": "ARBITRARYTAXON.0",
+        "FLYING.8472.1.2": "ARBITRARYTAXON.0",
+        "FLYING.8472.123": "ARBITRARYTAXON.0",
+        "FLYING.8472.7": "ARBITRARYTAXON.1",
+        "FLYING.123.1": "ARBITRARYTAXON.1",
+        "FLYING.123.1.2": "ARBITRARYTAXON.1",
+        "FLYING.123.123": "ARBITRARYTAXON.0",
+        "FLYING.123.7": "ARBITRARYTAXON.0",
+    }
+
+    input_taxa = read_taxa(
+        "tests/toy_lineages.txt",
+        is_tip=True,
+        nomenclature=pango_with_toy_alias,
+    )
+    agg = FixedAggregator([taxon.name for taxon in input_taxa], expected)
+
+    assert agg.map() == expected
 
 
 def test_no_drop_no_overlap(pango_with_toy_alias):
