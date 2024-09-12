@@ -26,7 +26,7 @@ class Aggregator(ABC):
     """
     A partially-abstract base class for aggregation.
 
-    Descendants need only implement next_agg_step() and next_taxa() to create a usable aggregation object.
+    Descendants need only implement next_agg_step() to create a usable aggregation object.
     """
 
     def __init__(
@@ -85,24 +85,16 @@ class Aggregator(ABC):
         In the interim, self.messy_map is populated with the results of aggregation.
         """
         while self.stack:
-            taxa_in = self.next_taxa()
-            step = self.next_agg_step(taxa_in)
+            step = self.next_agg_step()
             self._valid_agg_step(step)
             self.resolve_agg_step(step)
 
         self._valid_mapping()
 
     @abstractmethod
-    def next_taxa(self) -> Iterable[Taxon]:
+    def next_agg_step(self) -> TaxonMapping:
         """
-        Find the next taxon or taxa to merge.
-        """
-        pass
-
-    @abstractmethod
-    def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
-        """
-        Find the next available step in the aggregation process for these taxa.
+        Find the next available step in the aggregation process.
         """
         pass
 
@@ -169,18 +161,10 @@ class FixedAggregator(Aggregator):
         self.fixed_map = map
         self.make_tip = create_tip_taxa
 
-    def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
-        map = {}
-        done = {}
-        for taxon_from in taxa:
-            taxon_to = Taxon(self.fixed_map[taxon_from.name], self.make_tip)
-            map[taxon_from] = taxon_to
-            done[taxon_to] = True
-
-        return TaxonMapping(map, done)
-
-    def next_taxa(self) -> Iterable[Taxon]:
-        return [self.stack[0]]
+    def next_agg_step(self) -> TaxonMapping:
+        taxon_from = self.stack[0]
+        taxon_to = Taxon(self.fixed_map[taxon_from.name], self.make_tip)
+        return TaxonMapping({taxon_from: taxon_to}, {taxon_to: True})
 
 
 class BasicPhylogeneticAggregator(Aggregator):
@@ -225,8 +209,6 @@ class BasicPhylogeneticAggregator(Aggregator):
             will be mapped to themselves.
         """
         super().__init__(in_taxa=[taxon for taxon in unaggregated])
-        self._cached_target = None
-        self._cached_taxa = None
         self.targets = [taxon for taxon in targets]
         self._input_targets = copy(self.targets)
         if sort_clades:
@@ -244,31 +226,23 @@ class BasicPhylogeneticAggregator(Aggregator):
         self.agg_other = unmapped_are_other
         self.warn = warn
 
-    def next_agg_step(self, taxa: Iterable[Taxon]) -> TaxonMapping:
-        assert isinstance(self._cached_target, Taxon)
-        assert taxa is self._cached_taxa
+    def next_agg_step(self) -> TaxonMapping:
+        if len(self.targets) > 0:
+            target = self.targets.pop()
+            children = self.taxonomy_scheme.descendants(target, True)
+            taxa = [taxon for taxon in self.stack if taxon in children]
+        elif self.agg_other:
+            target = Taxon("other", False)
+            taxa = self.stack
+        else:
+            target = self.stack[-1]
+            taxa = [target]
+
         map = {}
         for taxon in taxa:
-            map[taxon] = self._cached_target
-        done = {self._cached_target: True}
+            map[taxon] = target
+        done = {target: True}
         return TaxonMapping(map, done)
-
-    def next_taxa(self) -> Iterable[Taxon]:
-        if len(self.targets) > 0:
-            self._cached_target = self.targets.pop()
-            children = self.taxonomy_scheme.descendants(
-                self._cached_target, True
-            )
-            self._cached_taxa = [
-                taxon for taxon in self.stack if taxon in children
-            ]
-        elif self.agg_other:
-            self._cached_target = Taxon("other", False)
-            self._cached_taxa = self.stack
-        else:
-            self._cached_target = self.stack[-1]
-            self._cached_taxa = [self._cached_target]
-        return self._cached_taxa
 
     def _valid_mapping(self):
         super()._valid_mapping()
