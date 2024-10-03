@@ -218,7 +218,7 @@ class SerialAggregator(Aggregator):
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
         taxa = list(input_taxa)
-        comp_agg = {taxon: taxon for taxon in input_taxa}
+        comp_agg = SelfAggregator().aggregate(input_taxa)
 
         for aggregator in self.aggregators:
             agg = aggregator.aggregate(taxa)
