@@ -1,8 +1,8 @@
 import pytest
 
 from cladecombiner import (
+    ArbitraryAggregator,
     BasicPhylogeneticAggregator,
-    FixedAggregator,
     PhylogeneticTaxonomyScheme,
     Taxon,
     read_taxa,
@@ -44,14 +44,15 @@ def test_nocombiner(pango_with_toy_alias):
         "FLYING.123.7": "ARBITRARYTAXON.0",
     }
 
+    input_map = {Taxon(k, True): Taxon(v, False) for k, v in expected.items()}
     input_taxa = read_taxa(
         "tests/toy_lineages.txt",
         is_tip=True,
         nomenclature=pango_with_toy_alias,
     )
-    agg = FixedAggregator([taxon.name for taxon in input_taxa], expected)
+    agg = ArbitraryAggregator(input_map)
 
-    assert agg.map() == expected
+    assert agg.aggregate([taxon for taxon in input_taxa]).to_str() == expected
 
 
 def test_no_drop_no_overlap(pango_with_toy_alias):
@@ -68,7 +69,7 @@ def test_no_drop_no_overlap(pango_with_toy_alias):
     )
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
-    agg = BasicPhylogeneticAggregator(input_taxa, targets, taxonomy_scheme)
+    agg = BasicPhylogeneticAggregator(targets, taxonomy_scheme)
 
     expected = {
         "LIFE.1": "PYTHONS.0.0.0",
@@ -84,7 +85,7 @@ def test_no_drop_no_overlap(pango_with_toy_alias):
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
     }
-    assert agg.map() == expected
+    assert agg.aggregate(input_taxa).to_str() == expected
 
 
 def test_drop_other(pango_with_toy_alias):
@@ -101,7 +102,7 @@ def test_drop_other(pango_with_toy_alias):
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
     agg = BasicPhylogeneticAggregator(
-        input_taxa, targets, taxonomy_scheme, unmapped_are_other=True
+        targets, taxonomy_scheme, unmapped_are_other=True
     )
 
     expected = {
@@ -118,7 +119,7 @@ def test_drop_other(pango_with_toy_alias):
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
     }
-    assert agg.map() == expected
+    assert agg.aggregate(input_taxa).to_str() == expected
 
 
 def test_drop_self(pango_with_toy_alias):
@@ -135,7 +136,7 @@ def test_drop_self(pango_with_toy_alias):
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
     agg = BasicPhylogeneticAggregator(
-        input_taxa, targets, taxonomy_scheme, unmapped_are_other=False
+        targets, taxonomy_scheme, unmapped_are_other=False
     )
 
     expected = {
@@ -152,7 +153,7 @@ def test_drop_self(pango_with_toy_alias):
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
     }
-    assert agg.map() == expected
+    assert agg.aggregate(input_taxa).to_str() == expected
 
 
 def test_overlap_sorted(pango_with_toy_alias):
@@ -170,7 +171,7 @@ def test_overlap_sorted(pango_with_toy_alias):
     )
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
-    agg = BasicPhylogeneticAggregator(input_taxa, targets, taxonomy_scheme)
+    agg = BasicPhylogeneticAggregator(targets, taxonomy_scheme)
 
     expected = {
         "LIFE.1": "LIFE.1",
@@ -186,7 +187,7 @@ def test_overlap_sorted(pango_with_toy_alias):
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
     }
-    assert agg.map() == expected
+    assert agg.aggregate(input_taxa).to_str() == expected
 
 
 def test_overlap_unsorted(pango_with_toy_alias):
@@ -205,7 +206,7 @@ def test_overlap_unsorted(pango_with_toy_alias):
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
     agg = BasicPhylogeneticAggregator(
-        input_taxa, targets, taxonomy_scheme, sort_clades=False, warn=False
+        targets, taxonomy_scheme, sort_clades=False, warn=False
     )
 
     expected = {
@@ -222,4 +223,4 @@ def test_overlap_unsorted(pango_with_toy_alias):
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
     }
-    assert agg.map() == expected
+    assert agg.aggregate(input_taxa).to_str() == expected

@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from copy import copy
-from dataclasses import dataclass
 from warnings import warn
 
 from .ordered_taxon import OrderedTaxon
@@ -10,161 +8,77 @@ from .taxonomy_scheme import PhylogeneticTaxonomyScheme
 from .utils import table
 
 
-@dataclass
-class TaxonMapping:
+class Aggregation(dict[Taxon, Taxon]):
     """
-    Class for tracking proposed step in aggregation process.
-    """
-
-    map: dict[Taxon, Taxon]
-    "from : to dictionary of the mapping"
-    done: dict[Taxon, bool]
-    "to : add_to_stack dictionary tracking if the aggregated taxon should be added back to the stack"
-
-
-class Aggregator(ABC):
-    """
-    A partially-abstract base class for aggregation.
-
-    Descendants need only implement next_agg_step() to create a usable aggregation object.
+    An object for aggregations, basically just a dictionary.
     """
 
-    def __init__(
-        self,
-        in_taxa: Iterable[Taxon],
+    def _validate(
+        self, input_taxa: Iterable[Taxon], taxon_map: dict[Taxon, Taxon]
     ):
-        """
-        Constructor for aggregation infrastructure shared by all subclasses.
-
-        Parameters
-        ----------
-        in_taxa : Iterable[Taxon]
-            The taxa we wish to aggregate.
-        """
-        self.input_taxa = list(in_taxa)
-        "The taxa we wish to aggregate."
-        self.stack = copy(self.input_taxa)
-        "Taxa that still need to be aggregated."
-        self.messy_map = {}
-        "A record of the entire history of aggregation of all taxa."
-
-    def _valid_agg_step(self, mapping: TaxonMapping):
-        """
-        Check that this proposed merge move is acceptable
-        """
-        unknown = [k for k in mapping.map.keys() if k not in self.stack]
-        if len(unknown) > 0:
-            raise RuntimeError(
-                f"Tried to map {unknown} which is not in current stack {self.stack}."
-            )
-
-    def _valid_mapping(self):
         """
         Checks that all input taxa have been mapped exactly once.
         """
-        in_str = [taxon.name for taxon in self.input_taxa]
-        map = self.map()
-        if set(map.keys()) != set(in_str):
+        if set(taxon_map.keys()) != set(input_taxa):
             raise RuntimeError(
-                "Mismatch between mapped taxa and input taxa. Input taxa are: "
-                + str(in_str)
-                + " but mapped taxa are "
-                + str(map.keys())
+                "Mismatch between aggregated taxa and input taxa. Input taxa are: "
+                + str(input_taxa)
+                + " but aggregated taxa are "
+                + str(taxon_map.keys())
             )
-        tab = table(map)
+        tab = table(taxon_map)
         if not all(v == 1 for v in tab.values()):
             raise RuntimeError(
                 "Found following taxa mapped more than once: "
                 + str([k for k, v in tab.items() if v > 1])
             )
 
-    def aggregate(self):
-        """
-        Perform aggregation. When done, results may be collected with self.map().
+    def __init__(
+        self, input_taxa: Iterable[Taxon], taxon_map: dict[Taxon, Taxon]
+    ):
+        self._validate(input_taxa, taxon_map)
+        super().__init__(taxon_map)
 
-        In the interim, self.messy_map is populated with the results of aggregation.
+    def to_str(self):
         """
-        while self.stack:
-            step = self.next_agg_step()
-            self._valid_agg_step(step)
-            self.resolve_agg_step(step)
+        Get str : str map of taxa names
+        """
+        return {k.name: v.name for k, v in self.items()}
 
-        self._valid_mapping()
+
+class Aggregator(ABC):
+    """
+    Aggregators return Aggregations, maps of input_taxon : aggregated_taxon
+    """
 
     @abstractmethod
-    def next_agg_step(self) -> TaxonMapping:
-        """
-        Find the next available step in the aggregation process.
-        """
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
         pass
 
-    def map(self) -> dict[str, str]:
-        """
-        Create clean {Taxon from : Taxon to} aggregation dictionary.
-        """
-        if len(self.stack) > 0:
-            self.aggregate()
-        taxon_map = {}
-        for taxon_from in self.input_taxa:
-            taxon_to = taxon_from
-            while taxon_to in self.messy_map.keys():
-                if taxon_to == self.messy_map[taxon_to]:
-                    # Self-mappings are possible
-                    break
-                taxon_to = self.messy_map[taxon_to]
-            taxon_map[taxon_from.name] = taxon_to.name
-        return taxon_map
 
-    def resolve_agg_step(self, mapping: TaxonMapping):
-        for k, v in mapping.map.items():
-            self.messy_map[k] = v
-            self.stack.remove(k)
-
-        for k, v in mapping.done.items():
-            if not v:
-                self.stack.append(k)
-
-
-class FixedAggregator(Aggregator):
+class ArbitraryAggregator(Aggregator):
     """
     Aggregation via a user-provided dictionary.
     """
 
     def __init__(
         self,
-        unaggregated: Iterable[str],
-        map: dict[str, str],
-        create_tip_taxa: bool = False,
+        map: dict[Taxon, Taxon],
     ):
         """
         FixedAggregator constructor.
 
         Parameters
         ----------
-        unaggregated : Iterable[str]
-            The taxa we wish to aggregate, as strings.
-
-        map : dict[str, str]
-            Dictionary mapping the input taxa to their final units.
-
-        create_tip_taxa : bool
-            Should the taxa we create be labeled as tips or not?
-
-        Returns
-        -------
-        Taxon
-            The taxon's parent, or None if this is the root.
+        map : dict[Taxon, Taxon]
+            Dictionary mapping the input taxa to their aggregated taxa.
         """
-        super().__init__(
-            in_taxa=[Taxon(nm, False) for nm in unaggregated],
-        )
-        self.fixed_map = map
-        self.make_tip = create_tip_taxa
+        self.map = map
 
-    def next_agg_step(self) -> TaxonMapping:
-        taxon_from = self.stack[0]
-        taxon_to = Taxon(self.fixed_map[taxon_from.name], self.make_tip)
-        return TaxonMapping({taxon_from: taxon_to}, {taxon_to: True})
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        return Aggregation(
+            input_taxa, {taxon: self.map[taxon] for taxon in input_taxa}
+        )
 
 
 class BasicPhylogeneticAggregator(Aggregator):
@@ -174,7 +88,6 @@ class BasicPhylogeneticAggregator(Aggregator):
 
     def __init__(
         self,
-        unaggregated: Iterable[Taxon],
         targets: Iterable[Taxon],
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
         sort_clades: bool = True,
@@ -186,11 +99,8 @@ class BasicPhylogeneticAggregator(Aggregator):
 
         Parameters
         ----------
-        unaggregated : Iterable[Taxon]
-            The taxa we wish to aggregate.
-
         targets : Iterable[Taxon]
-            The taxa into which we wish to map the unaggregated taxa.
+            The taxa into which we wish to aggregate the input taxa.
 
         taxonomy_scheme : PhylogeneticTaxonomyScheme
             The tree which we use to do the mapping.
@@ -208,9 +118,17 @@ class BasicPhylogeneticAggregator(Aggregator):
             a target will be mapped to Taxon("other"). If False, any such taxa
             will be mapped to themselves.
         """
-        super().__init__(in_taxa=[taxon for taxon in unaggregated])
+        unknown_targets = [
+            taxon
+            for taxon in targets
+            if not taxonomy_scheme.is_valid_taxon(taxon)
+        ]
+        if len(unknown_targets) > 0:
+            raise ValueError(
+                "The following targets are not valid taxa according to the provided taxonomy scheme: "
+                + str(unknown_targets)
+            )
         self.targets = [taxon for taxon in targets]
-        self._input_targets = copy(self.targets)
         if sort_clades:
             ordered_taxa = [
                 OrderedTaxon("", False, taxonomy_scheme).from_taxon(
@@ -220,59 +138,78 @@ class BasicPhylogeneticAggregator(Aggregator):
             ]
             ordered_taxa.sort()
             self.targets = [otaxon.to_taxon() for otaxon in ordered_taxa]
-        # So .pop() executes these in the expected order
-        self.targets.reverse()
         self.taxonomy_scheme = taxonomy_scheme
         self.agg_other = unmapped_are_other
         self.warn = warn
 
-    def _valid_agg_step(self, mapping: TaxonMapping):
-        super()._valid_agg_step(mapping)
+    def _validate_inputs(self, input_taxa: Iterable[Taxon]) -> None:
         unknown_taxa = [
             taxon
-            for taxon in mapping.done.keys()
-            if not self.taxon_is_valid(taxon)
+            for taxon in input_taxa
+            if not self.taxonomy_scheme.is_valid_taxon(taxon)
         ]
         if len(unknown_taxa) > 0:
-            raise RuntimeError(
-                f"Aggregation step resulted in the following taxa unknown to the provided taxonomy scheme: {unknown_taxa}"
+            raise ValueError(
+                "The following targets are not valid taxa according to the provided taxonomy scheme: "
+                + str(unknown_taxa)
             )
 
-    def _valid_mapping(self):
-        super()._valid_mapping()
+    def _check_missing(self, agg_map: dict[Taxon, Taxon]):
         if self.warn:
-            used_targets = set(self.map().values())
+            used_targets = set(agg_map.values())
             unused_targets = [
-                target.name
-                for target in self._input_targets
-                if target.name not in used_targets
+                target for target in self.targets if target not in used_targets
             ]
             if len(unused_targets) > 0:
                 warn(
                     f"The aggregation does not make use of the following input targets: {unused_targets}."
                 )
 
-    def next_agg_step(self) -> TaxonMapping:
-        if len(self.targets) > 0:
-            target = self.targets.pop()
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        self._validate_inputs(input_taxa)
+        agg_map: dict[Taxon, Taxon] = {}
+        stack = set(input_taxa)
+        for target in self.targets:
             children = self.taxonomy_scheme.descendants(target, True)
-            taxa = [taxon for taxon in self.stack if taxon in children]
-        elif self.agg_other:
-            target = Taxon("other", False)
-            taxa = self.stack
-        else:
-            target = self.stack[-1]
-            taxa = [target]
+            sub_map = {taxon: target for taxon in stack if taxon in children}
+            agg_map = agg_map | sub_map
+            stack.difference_update(set(agg_map.keys()))
 
-        map = {}
-        for taxon in taxa:
-            map[taxon] = target
-        done = {target: True}
-        return TaxonMapping(map, done)
+        if len(stack) > 0:
+            if self.agg_other:
+                cleanup = HomogenousAggregator(
+                    Taxon("other", False)
+                ).aggregate(stack)
+            else:
+                cleanup = SelfAggregator().aggregate(stack)
+            agg_map = agg_map | cleanup
 
-    def taxon_is_valid(self, taxon: Taxon) -> bool:
-        if self.taxonomy_scheme.is_valid_taxon(taxon):
-            return True
-        elif self.agg_other and taxon == Taxon("other", False):
-            return True
-        return False
+        self._check_missing(agg_map)
+
+        return Aggregation(input_taxa, agg_map)
+
+
+class HomogenousAggregator(Aggregator):
+    """
+    Aggregation of every taxon to some catch-all taxon.
+    """
+
+    def __init__(self, taxon: Taxon):
+        self.agg_taxon = taxon
+
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        return Aggregation(
+            input_taxa, {taxon: self.agg_taxon for taxon in input_taxa}
+        )
+
+
+class SelfAggregator(Aggregator):
+    """
+    Aggregation of every taxon to itself
+    """
+
+    def __init__(self):
+        pass
+
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        return Aggregation(input_taxa, {taxon: taxon for taxon in input_taxa})
