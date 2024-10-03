@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from warnings import warn
 
-from .ordered_taxon import OrderedTaxon
 from .taxon import Taxon
+from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
 from .utils import table
 
@@ -129,18 +129,11 @@ class BasicPhylogeneticAggregator(Aggregator):
                 + str(unknown_targets)
             )
         self.targets = [taxon for taxon in targets]
-        if sort_clades:
-            ordered_taxa = [
-                OrderedTaxon("", False, taxonomy_scheme).from_taxon(
-                    taxon, taxonomy_scheme
-                )
-                for taxon in targets
-            ]
-            ordered_taxa.sort()
-            self.targets = [otaxon.to_taxon() for otaxon in ordered_taxa]
         self.taxonomy_scheme = taxonomy_scheme
         self.agg_other = unmapped_are_other
         self.warn = warn
+        if sort_clades:
+            self.targets = sort_taxa(self.targets, self.taxonomy_scheme)
 
     def _validate_inputs(self, input_taxa: Iterable[Taxon]) -> None:
         unknown_taxa = [

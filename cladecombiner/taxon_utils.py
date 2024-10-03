@@ -1,10 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from functools import cmp_to_key
 from os import path
 from typing import Optional
 
 from .nomenclature import Nomenclature
 from .taxon import Taxon
-from .taxonomy_scheme import TaxonomyScheme
+from .taxonomy_scheme import TaxonomyScheme, TreelikeTaxonomyScheme
 
 
 def read_taxa(
@@ -96,3 +97,20 @@ def printable_taxon_list(taxa: Sequence[Taxon], sep: str = "\n") -> str:
     for taxon in taxa:
         print_str += str(taxon) + sep
     return print_str
+
+
+def sort_taxa(taxa: Iterable[Taxon], taxonomy_scheme: TreelikeTaxonomyScheme):
+    assert all(isinstance(taxon, Taxon) for taxon in taxa)
+    unknown = [
+        taxon for taxon in taxa if not taxonomy_scheme.is_valid_taxon(taxon)
+    ]
+    if len(unknown) > 0:
+        raise ValueError(
+            f"Cannot sort the following taxa which are unknown to the taxonomy scheme: {unknown}"
+        )
+    return sorted(
+        taxa,
+        key=cmp_to_key(
+            lambda x, y: 1 if taxonomy_scheme.contains(x, y) else -1
+        ),
+    )
