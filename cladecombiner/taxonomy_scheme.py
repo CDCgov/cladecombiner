@@ -311,6 +311,9 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
                 return True
             node = node.parent_node
 
+        if node is node_x:
+            return True
+
         return False
 
     def descendants(self, taxon: Taxon, tip_only: bool) -> Collection[Taxon]:
