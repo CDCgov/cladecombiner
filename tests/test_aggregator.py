@@ -4,6 +4,7 @@ from cladecombiner import (
     ArbitraryAggregator,
     BasicPhylogeneticAggregator,
     PhylogeneticTaxonomyScheme,
+    SerialAggregator,
     Taxon,
     read_taxa,
 )
@@ -222,5 +223,52 @@ def test_overlap_unsorted(pango_with_toy_alias):
         "FLYING.123.1.2": "FLYING.123",
         "FLYING.123.123": "FLYING.123",
         "FLYING.123.7": "FLYING.123",
+    }
+    assert agg.aggregate(input_taxa).to_str() == expected
+
+
+def test_serial_basic_arbitrary(pango_with_toy_alias):
+    basic_targets = [
+        Taxon("PYTHONS.0.0.0", False),
+        Taxon("LIFE.1", False),
+        Taxon("FLYING.8472", False),
+        Taxon("FLYING.123", False),
+    ]
+
+    arbitrary_dict = {
+        Taxon("PYTHONS.0.0.0", False): Taxon("ARBITRARY.1", False),
+        Taxon("LIFE.1", False): Taxon("ARBITRARY.2", False),
+        Taxon("FLYING.8472", False): Taxon("ARBITRARY.3", False),
+        Taxon("FLYING.123", False): Taxon("ARBITRARY.1", False),
+    }
+
+    input_taxa = read_taxa(
+        "tests/toy_lineages.txt",
+        is_tip=True,
+        nomenclature=pango_with_toy_alias,
+    )
+    tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
+    taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
+    basic_agg = BasicPhylogeneticAggregator(
+        basic_targets, taxonomy_scheme, sort_clades=False, warn=False
+    )
+
+    arbitrary_agg = ArbitraryAggregator(arbitrary_dict)
+
+    agg = SerialAggregator([basic_agg, arbitrary_agg])
+
+    expected = {
+        "LIFE.1": "ARBITRARY.1",
+        "LIFE.1.2": "ARBITRARY.1",
+        "LIFE.123": "ARBITRARY.1",
+        "LIFE.7": "ARBITRARY.1",
+        "FLYING.8472.1": "ARBITRARY.3",
+        "FLYING.8472.1.2": "ARBITRARY.3",
+        "FLYING.8472.123": "ARBITRARY.3",
+        "FLYING.8472.7": "ARBITRARY.3",
+        "FLYING.123.1": "ARBITRARY.1",
+        "FLYING.123.1.2": "ARBITRARY.1",
+        "FLYING.123.123": "ARBITRARY.1",
+        "FLYING.123.7": "ARBITRARY.1",
     }
     assert agg.aggregate(input_taxa).to_str() == expected

@@ -206,3 +206,23 @@ class SelfAggregator(Aggregator):
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
         return Aggregation(input_taxa, {taxon: taxon for taxon in input_taxa})
+
+
+class SerialAggregator(Aggregator):
+    """
+    A number of aggregators chained in serial.
+    """
+
+    def __init__(self, aggregators: Iterable[Aggregator]):
+        self.aggregators = aggregators
+
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        taxa = list(input_taxa)
+        comp_agg = {taxon: taxon for taxon in input_taxa}
+
+        for aggregator in self.aggregators:
+            agg = aggregator.aggregate(taxa)
+            taxa = set(agg.values())
+            comp_agg = {taxon: agg[comp_agg[taxon]] for taxon in input_taxa}
+
+        return Aggregation(input_taxa, comp_agg)
