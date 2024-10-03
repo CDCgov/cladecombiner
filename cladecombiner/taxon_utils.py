@@ -37,11 +37,11 @@ def read_taxa(
     Sequence[Taxon]
         Container of the taxa as Taxon objects.
     """
-    if nomenclature is not None:
-        assert isinstance(nomenclature, Nomenclature)
+    assert nomenclature is None or isinstance(nomenclature, Nomenclature)
 
-    if taxonomy_scheme is not None:
-        assert isinstance(nomenclature, TaxonomyScheme)
+    assert taxonomy_scheme is None or isinstance(
+        taxonomy_scheme, TaxonomyScheme
+    )
 
     ext = path.splitext(fp)[1]
     taxa = []
