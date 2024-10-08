@@ -91,7 +91,7 @@ class BasicPhylogeneticAggregator(Aggregator):
         targets: Iterable[Taxon],
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
         sort_clades: bool = True,
-        unmapped_are_other: bool = True,
+        off_target: str = "other",
         warn: bool = True,
     ):
         """
@@ -113,38 +113,34 @@ class BasicPhylogeneticAggregator(Aggregator):
             BA.2.86 first, such that JN.1 would map to BA.2.86, while BG.1 would
             map to BA.2. If BA.2 is processed first, both will map to it.
 
-        unmapped_are_other : bool
-            If True, any taxon found in the input list which does not fall into
-            a target will be mapped to Taxon("other"). If False, any such taxa
-            will be mapped to themselves.
+        off_target : str
+            Specifies what to do with taxa which do not belong to any target.
+            Options are "other" for aggregating all such taxa into Taxon("other"),
+            and "self" for aggregating all such taxa into themselves.
         """
-        unknown_targets = [
-            taxon
-            for taxon in targets
-            if not taxonomy_scheme.is_valid_taxon(taxon)
-        ]
-        if len(unknown_targets) > 0:
-            raise ValueError(
-                "The following targets are not valid taxa according to the provided taxonomy scheme: "
-                + str(unknown_targets)
-            )
-        self.targets = [taxon for taxon in targets]
         self.taxonomy_scheme = taxonomy_scheme
-        self.agg_other = unmapped_are_other
+        self._validate_inputs(targets)
+        self.targets = [taxon for taxon in targets]
+        off_target_options = ["self", "other"]
+        if off_target not in off_target_options:
+            raise RuntimeError(
+                f"Unrecognized value for `off_target`, options are:{off_target}"
+            )
+        self.off_target = off_target
         self.warn = warn
         if sort_clades:
             self.targets = sort_taxa(self.targets, self.taxonomy_scheme)
 
     def _validate_inputs(self, input_taxa: Iterable[Taxon]) -> None:
-        unknown_taxa = [
+        invalid_taxa = [
             taxon
             for taxon in input_taxa
             if not self.taxonomy_scheme.is_valid_taxon(taxon)
         ]
-        if len(unknown_taxa) > 0:
+        if len(invalid_taxa) > 0:
             raise ValueError(
-                "The following targets are not valid taxa according to the provided taxonomy scheme: "
-                + str(unknown_taxa)
+                "The following taxa are not valid taxa according to the provided taxonomy scheme: "
+                + str(invalid_taxa)
             )
 
     def _check_missing(self, agg_map: dict[Taxon, Taxon]):
@@ -169,7 +165,7 @@ class BasicPhylogeneticAggregator(Aggregator):
             stack.difference_update(set(agg_map.keys()))
 
         if len(stack) > 0:
-            if self.agg_other:
+            if self.off_target == "other":
                 cleanup = HomogenousAggregator(
                     Taxon("other", False)
                 ).aggregate(stack)

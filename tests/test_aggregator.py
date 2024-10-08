@@ -103,7 +103,7 @@ def test_drop_other(pango_with_toy_alias):
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
     agg = BasicPhylogeneticAggregator(
-        targets, taxonomy_scheme, unmapped_are_other=True
+        targets, taxonomy_scheme, off_target="other"
     )
 
     expected = {
@@ -137,7 +137,7 @@ def test_drop_self(pango_with_toy_alias):
     tree = pango_with_toy_alias.taxonomy_tree(input_taxa)
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
     agg = BasicPhylogeneticAggregator(
-        targets, taxonomy_scheme, unmapped_are_other=False
+        targets, taxonomy_scheme, off_target="self"
     )
 
     expected = {
