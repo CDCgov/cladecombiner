@@ -1,17 +1,18 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from functools import cmp_to_key
 from os import path
 from typing import Optional
 
 from .nomenclature import Nomenclature
 from .taxon import Taxon
-from .taxonomy_scheme import TaxonomyScheme
+from .taxonomy_scheme import TaxonomyScheme, TreelikeTaxonomyScheme
 
 
 def read_taxa(
     fp: str,
-    is_tip: bool | Sequence[bool],
-    nomenclature: Optional[Nomenclature],
-    taxonomy_scheme: Optional[TaxonomyScheme],
+    is_tip: bool | Sequence[bool] = True,
+    nomenclature: Optional[Nomenclature] = None,
+    taxonomy_scheme: Optional[TaxonomyScheme] = None,
 ) -> Sequence[Taxon]:
     """
     Reads in taxa as a list of Taxon objects.
@@ -36,6 +37,11 @@ def read_taxa(
     Sequence[Taxon]
         Container of the taxa as Taxon objects.
     """
+    assert nomenclature is None or isinstance(nomenclature, Nomenclature)
+
+    assert taxonomy_scheme is None or isinstance(
+        taxonomy_scheme, TaxonomyScheme
+    )
 
     ext = path.splitext(fp)[1]
     taxa = []
@@ -91,3 +97,20 @@ def printable_taxon_list(taxa: Sequence[Taxon], sep: str = "\n") -> str:
     for taxon in taxa:
         print_str += str(taxon) + sep
     return print_str
+
+
+def sort_taxa(taxa: Iterable[Taxon], taxonomy_scheme: TreelikeTaxonomyScheme):
+    assert all(isinstance(taxon, Taxon) for taxon in taxa)
+    unknown = [
+        taxon for taxon in taxa if not taxonomy_scheme.is_valid_taxon(taxon)
+    ]
+    if len(unknown) > 0:
+        raise ValueError(
+            f"Cannot sort the following taxa which are unknown to the taxonomy scheme: {unknown}"
+        )
+    return sorted(
+        taxa,
+        key=cmp_to_key(
+            lambda x, y: 1 if taxonomy_scheme.contains(x, y) else -1
+        ),
+    )

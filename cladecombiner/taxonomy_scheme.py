@@ -13,7 +13,6 @@ class TaxonomyScheme(ABC):
     Allows hybridization-induced multiple ancestry.
     """
 
-    @abstractmethod
     def ancestors(self, taxon: Taxon) -> Collection[Taxon]:
         """
         All taxa which are between this taxon and the root (including the root).
@@ -311,6 +310,9 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
             if node is node_x:
                 return True
             node = node.parent_node
+
+        if node is node_x:
+            return True
 
         return False
 

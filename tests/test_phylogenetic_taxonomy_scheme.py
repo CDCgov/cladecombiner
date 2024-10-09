@@ -4,6 +4,7 @@ import dendropy
 import pytest
 
 from cladecombiner import Taxon
+from cladecombiner.taxon_utils import sort_taxa
 from cladecombiner.tree_utils import fully_labeled_trees_same
 from cladecombiner.utils import table_equal
 
@@ -200,3 +201,30 @@ def test_valid(pango_phylo_taxonomy):
     ]
     for taxon in expect_invalid:
         assert not pango_phylo_taxonomy.is_valid_taxon(taxon)
+
+
+def test_sort(pango_phylo_taxonomy):
+    taxa = [
+        Taxon("XA", is_tip=False),  # 0
+        Taxon("A.1", is_tip=False),  # 1
+        Taxon("A.2.2", is_tip=False),  # 2
+        Taxon("A.2", is_tip=False),  # 3
+        Taxon("A", is_tip=True),  # 4
+        Taxon("A", is_tip=False),  # 5
+        Taxon("", is_tip=False),  # 6
+    ]
+
+    staxa = list(sort_taxa(taxa, pango_phylo_taxonomy))
+
+    # General correctness
+    assert staxa.index(taxa[6]) == 6
+
+    assert staxa.index(taxa[5]) > staxa.index(taxa[4])
+    assert staxa.index(taxa[5]) > staxa.index(taxa[3])
+    assert staxa.index(taxa[5]) > staxa.index(taxa[2])
+    assert staxa.index(taxa[5]) > staxa.index(taxa[1])
+    assert staxa.index(taxa[5]) > staxa.index(taxa[0])
+
+    assert staxa.index(taxa[3]) > staxa.index(taxa[2])
+
+    # Specific order we may get used to
