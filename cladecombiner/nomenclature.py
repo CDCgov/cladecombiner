@@ -4,7 +4,13 @@ import urllib.request
 import warnings
 from abc import ABC, abstractmethod
 from collections import Counter
-from collections.abc import Collection, Container, MutableSequence, Sequence
+from collections.abc import (
+    Collection,
+    Container,
+    Iterable,
+    MutableSequence,
+    Sequence,
+)
 from sys import maxsize as integer_inf
 from typing import Any, Callable, Optional
 
@@ -100,6 +106,16 @@ class Nomenclature(ABC):
             The name of this taxonomy scheme.
         """
         raise NotImplementedError()
+
+    def validate(self, names: Iterable[str]) -> None:
+        nonstr = [name for name in names if not isinstance(name, str)]
+        if len(nonstr) > 0:
+            raise TypeError(f"Found non-string names: {nonstr}")
+        invalid = [name for name in names if not self.is_valid_name(name)]
+        if len(invalid) > 0:
+            raise ValueError(
+                f"The following names are invalid under the provided Nomenclature ({self.name()}): {invalid}"
+            )
 
     def __str__(self):
         return self.name()

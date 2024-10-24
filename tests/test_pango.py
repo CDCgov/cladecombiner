@@ -61,6 +61,32 @@ def test_valid(pango_with_toy_alias):
     pango_with_toy_alias.max_sublevels = 3
 
 
+def test_validate(pango_with_toy_alias):
+    pango_with_toy_alias.validate(
+        [
+            "PYTHONS.1.2",
+            "ATHG.11.22",
+        ]
+    )
+
+    with pytest.raises(Exception) as e_info:
+        pango_with_toy_alias.validate([42, 47])
+    assert isinstance(e_info.value, TypeError)
+
+    with pytest.raises(Exception) as e_info:
+        pango_with_toy_alias.validate(
+            [
+                "this_is_not_a_real_taxon",
+                "nor_is_this",
+            ]
+        )
+    assert isinstance(e_info.value, ValueError)
+
+    with pytest.raises(Exception) as e_info:
+        pango_with_toy_alias.validate(["PYTHONS.1.1.1.1", "LIFE.2.2.2.2"])
+    assert isinstance(e_info.value, ValueError)
+
+
 def test_longer_name_nolist():
     pn = PangoSc2Nomenclature()
     with pytest.raises(RuntimeError):

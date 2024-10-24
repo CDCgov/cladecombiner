@@ -112,7 +112,7 @@ class BasicPhylogeneticAggregator(Aggregator):
             and "self" for aggregating all such taxa into themselves.
         """
         self.taxonomy_scheme = taxonomy_scheme
-        self._validate_inputs(targets)
+        self.taxonomy_scheme.validate(targets)
         self.targets = [taxon for taxon in targets]
         off_target_options = ["self", "other"]
         if off_target not in off_target_options:
@@ -123,18 +123,6 @@ class BasicPhylogeneticAggregator(Aggregator):
         self.warn = warn
         if sort_clades:
             self.targets = sort_taxa(self.targets, self.taxonomy_scheme)
-
-    def _validate_inputs(self, input_taxa: Iterable[Taxon]) -> None:
-        invalid_taxa = [
-            taxon
-            for taxon in input_taxa
-            if not self.taxonomy_scheme.is_valid_taxon(taxon)
-        ]
-        if len(invalid_taxa) > 0:
-            raise ValueError(
-                "The following taxa are not valid taxa according to the provided taxonomy scheme: "
-                + str(invalid_taxa)
-            )
 
     def _check_missing(self, agg_map: dict[Taxon, Taxon]):
         if self.warn:
@@ -148,7 +136,7 @@ class BasicPhylogeneticAggregator(Aggregator):
                 )
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
-        self._validate_inputs(input_taxa)
+        self.taxonomy_scheme.validate(input_taxa)
         agg_map: dict[Taxon, Taxon] = {}
         stack = set(input_taxa)
         for target in self.targets:
