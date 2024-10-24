@@ -35,7 +35,7 @@ class Nomenclature(ABC):
         bool
             True if this name indicates an ambiguous taxon.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def is_hybrid(self, name: str) -> bool:
@@ -53,7 +53,7 @@ class Nomenclature(ABC):
         bool
             True if this name indicates a hybrid taxon.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def is_root(self, name: str) -> bool:
@@ -71,7 +71,7 @@ class Nomenclature(ABC):
         bool
             True if this name indicates the root taxon.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def is_valid_name(self, name: str) -> bool:
@@ -87,7 +87,7 @@ class Nomenclature(ABC):
         bool
             True if this is a valid name under the nomenclature.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def name(self) -> str:
@@ -99,7 +99,7 @@ class Nomenclature(ABC):
         string
             The name of this taxonomy scheme.
         """
-        pass
+        raise NotImplementedError()
 
     def __str__(self):
         return self.name()
@@ -144,7 +144,7 @@ class AlgorithmicNomenclature(Nomenclature):
             For each input taxon, the history from the root to the taxon as a
             Sequence of names of taxa.
         """
-        pass
+        raise NotImplementedError()
 
     def subtree_from_histories(
         self, node: dendropy.Node, lvl: int, histories: Sequence[Sequence[str]]
@@ -605,7 +605,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         bool
             True if this taxon is a special taxon.
         """
-        pass
+        raise NotImplementedError()
 
     def is_valid_alias(self, alias: str) -> bool:
         """

@@ -46,7 +46,7 @@ class Aggregator(ABC):
 
     @abstractmethod
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
-        pass
+        raise NotImplementedError()
 
 
 class ArbitraryAggregator(Aggregator):
