@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from warnings import warn
 
-from .taxon import Taxon
-from .taxon_utils import sort_taxa
-from .taxonomy_scheme import PhylogeneticTaxonomyScheme
+from ..taxon import Taxon
+from ..taxon_utils import sort_taxa
+from ..taxonomy_scheme import PhylogeneticTaxonomyScheme
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -72,6 +72,12 @@ class ArbitraryAggregator(Aggregator):
         return Aggregation(
             input_taxa, {taxon: self.map[taxon] for taxon in input_taxa}
         )
+
+
+class AutomaticAggregator(Aggregator):
+    """ "
+    Aggregation based on objective criteria.
+    """
 
 
 class BasicPhylogeneticAggregator(Aggregator):
