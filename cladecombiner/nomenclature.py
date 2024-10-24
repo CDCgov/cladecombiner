@@ -3,6 +3,7 @@ import string
 import urllib.request
 import warnings
 from abc import ABC, abstractmethod
+from collections import Counter
 from collections.abc import Collection, Container, MutableSequence, Sequence
 from sys import maxsize as integer_inf
 from typing import Any, Callable, Optional
@@ -11,7 +12,6 @@ import dendropy
 
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
-from .utils import table
 
 
 class Nomenclature(ABC):
@@ -268,7 +268,7 @@ class AlgorithmicNomenclature(Nomenclature):
         int_names = [node.label for node in phy.preorder_internal_node_iter()]
 
         if len(set(tip_names)) != len(tip_names):
-            tab = table(tip_names)
+            tab = Counter(tip_names)
             mults = ", ".join(
                 [
                     str(k) + " (x" + str(v) + ")"
@@ -281,7 +281,7 @@ class AlgorithmicNomenclature(Nomenclature):
             )
 
         if len(set(int_names)) != len(int_names):
-            tab = table(int_names)
+            tab = Counter(int_names)
             mults = ", ".join(
                 [
                     str(k) + " (x" + str(v) + ")"
