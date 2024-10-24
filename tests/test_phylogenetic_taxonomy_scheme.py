@@ -1,4 +1,5 @@
 import copy
+from collections import Counter
 
 import dendropy
 import pytest
@@ -6,7 +7,6 @@ import pytest
 from cladecombiner import Taxon
 from cladecombiner.taxon_utils import sort_taxa
 from cladecombiner.tree_utils import fully_labeled_trees_same
-from cladecombiner.utils import table_equal
 
 
 def test_ancestors(pango_phylo_taxonomy):
@@ -33,7 +33,7 @@ def test_children(pango_phylo_taxonomy):
         Taxon("XA.12", is_tip=False),
     ]
     xa_children_obs = pango_phylo_taxonomy.children(Taxon("XA", is_tip=False))
-    assert table_equal(xa_children_obs, xa_children_exp)
+    assert Counter(xa_children_obs) == Counter(xa_children_exp)
 
     assert len(pango_phylo_taxonomy.children(Taxon("A", is_tip=True))) == 0
 
@@ -70,7 +70,7 @@ def test_descendants(pango_phylo_taxonomy):
     xa_desc_obs = pango_phylo_taxonomy.descendants(
         Taxon("XA", is_tip=False), tip_only=False
     )
-    assert table_equal(xa_desc_obs, xa_desc_exp)
+    assert Counter(xa_desc_obs) == Counter(xa_desc_exp)
 
     xa_desc_exp = [
         Taxon("XA", is_tip=True),
@@ -80,7 +80,7 @@ def test_descendants(pango_phylo_taxonomy):
     xa_desc_obs = pango_phylo_taxonomy.descendants(
         Taxon("XA", is_tip=False), tip_only=True
     )
-    assert table_equal(xa_desc_obs, xa_desc_exp)
+    assert Counter(xa_desc_obs) == Counter(xa_desc_exp)
 
 
 def test_mrca(pango_phylo_taxonomy):

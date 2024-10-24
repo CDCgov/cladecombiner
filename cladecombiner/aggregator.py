@@ -5,7 +5,6 @@ from warnings import warn
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
-from .utils import table
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -17,7 +16,7 @@ class Aggregation(dict[Taxon, Taxon]):
         self, input_taxa: Iterable[Taxon], taxon_map: dict[Taxon, Taxon]
     ):
         """
-        Checks that all input taxa have been mapped exactly once.
+        Checks that all input taxa are in the mapping.
         """
         if set(taxon_map.keys()) != set(input_taxa):
             raise RuntimeError(
@@ -25,12 +24,6 @@ class Aggregation(dict[Taxon, Taxon]):
                 + str(input_taxa)
                 + " but aggregated taxa are "
                 + str(taxon_map.keys())
-            )
-        tab = table(taxon_map)
-        if not all(v == 1 for v in tab.values()):
-            raise RuntimeError(
-                "Found following taxa mapped more than once: "
-                + str([k for k, v in tab.items() if v > 1])
             )
 
     def __init__(
