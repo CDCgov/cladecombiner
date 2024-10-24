@@ -53,27 +53,15 @@ def read_taxa(
         if not isinstance(is_tip, Sequence):
             is_tip = [is_tip for _ in range(len(lines))]
 
-        for line, i in zip(lines, range(len(lines))):
-            if nomenclature:
-                if not nomenclature.is_valid_name(line[:-1]):
-                    raise RuntimeError(
-                        "The name "
-                        + line[:-1]
-                        + " is not valid under the provided nomenclature ("
-                        + str(nomenclature)
-                        + ")"
-                    )
-            taxon = Taxon(line[:-1], is_tip[i])
-            if taxonomy_scheme:
-                if not taxonomy_scheme.is_valid_taxon(taxon):
-                    raise RuntimeError(
-                        "The name "
-                        + str(taxon)
-                        + " is not valid under the provided taxonomy scheme ("
-                        + str(taxonomy_scheme)
-                        + ")"
-                    )
+        for i in range(len(lines)):
+            taxon = Taxon(lines[i][:-1], is_tip[i])
             taxa.append(taxon)
+
+    if nomenclature:
+        nomenclature.validate([taxon.name for taxon in taxa])
+
+    if taxonomy_scheme:
+        taxonomy_scheme.validate([taxon for taxon in taxa])
     return taxa
 
 
@@ -100,14 +88,7 @@ def printable_taxon_list(taxa: Sequence[Taxon], sep: str = "\n") -> str:
 
 
 def sort_taxa(taxa: Iterable[Taxon], taxonomy_scheme: TreelikeTaxonomyScheme):
-    assert all(isinstance(taxon, Taxon) for taxon in taxa)
-    unknown = [
-        taxon for taxon in taxa if not taxonomy_scheme.is_valid_taxon(taxon)
-    ]
-    if len(unknown) > 0:
-        raise ValueError(
-            f"Cannot sort the following taxa which are unknown to the taxonomy scheme: {unknown}"
-        )
+    taxonomy_scheme.validate(taxa)
     return sorted(
         taxa,
         key=cmp_to_key(

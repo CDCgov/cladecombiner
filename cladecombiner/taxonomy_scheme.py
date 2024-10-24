@@ -140,6 +140,16 @@ class TaxonomyScheme(ABC):
         """
         raise NotImplementedError()
 
+    def validate(self, taxa: Iterable[Taxon]) -> None:
+        nontaxon = [taxon for taxon in taxa if not isinstance(taxon, Taxon)]
+        if len(nontaxon) > 0:
+            raise TypeError(f"Found invalid non-Taxon inputs: {nontaxon}")
+        invalid = [taxon for taxon in taxa if not self.is_valid_taxon(taxon)]
+        if len(invalid) > 0:
+            raise ValueError(
+                f"The following taxa are not recognized by the provided TaxonomyScheme ({self.__repr__()}): {invalid}"
+            )
+
 
 class TreelikeTaxonomyScheme(TaxonomyScheme):
     """
