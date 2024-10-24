@@ -56,7 +56,7 @@ class TaxonomyScheme(ABC):
             Returns empty container if this taxon has no children (i.e., if
             this taxon is a tip taxon).
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def descendants(self, taxon: Taxon, tip_only: bool) -> Collection[Taxon]:
@@ -101,7 +101,7 @@ class TaxonomyScheme(ABC):
         bool
             True if this taxon is the root.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def is_valid_taxon(self, taxon: Taxon) -> bool:
@@ -118,7 +118,7 @@ class TaxonomyScheme(ABC):
         bool
             True if this taxon is valid.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def parents(self, taxon: Taxon) -> Collection[Taxon]:
@@ -138,7 +138,7 @@ class TaxonomyScheme(ABC):
             A collection of the taxa that are direct parents of this taxon.
             Returns empty container if this taxon is the root.
         """
-        pass
+        raise NotImplementedError()
 
 
 class TreelikeTaxonomyScheme(TaxonomyScheme):
@@ -193,7 +193,7 @@ class TreelikeTaxonomyScheme(TaxonomyScheme):
         Taxon
             The taxon's parent, or None if this is the root.
         """
-        pass
+        raise NotImplementedError()
 
     #################
     # Class methods #
@@ -218,7 +218,7 @@ class TreelikeTaxonomyScheme(TaxonomyScheme):
         bool
             True if focal contains target.
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def mrca(self, taxa: Iterable[Taxon]) -> Taxon:
@@ -239,7 +239,7 @@ class TreelikeTaxonomyScheme(TaxonomyScheme):
         Taxon
             The MRCA.
         """
-        pass
+        raise NotImplementedError()
 
 
 class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
