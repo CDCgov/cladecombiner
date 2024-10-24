@@ -9,6 +9,38 @@ from cladecombiner.taxon_utils import sort_taxa
 from cladecombiner.tree_utils import fully_labeled_trees_same
 
 
+def test_validate(pango_phylo_taxonomy):
+    pango_phylo_taxonomy.validate(
+        [
+            Taxon("XA.1.2.3", is_tip=True),
+            Taxon("XA.1.2", is_tip=False),
+            Taxon("A", is_tip=False),
+        ]
+    )
+
+    with pytest.raises(Exception) as e_info:
+        pango_phylo_taxonomy.validate(["this_is_not_a_taxon", 42])
+    assert isinstance(e_info.value, TypeError)
+
+    with pytest.raises(Exception) as e_info:
+        pango_phylo_taxonomy.validate(
+            [
+                Taxon("ZZZ.pluralZ.alpha", True),
+                Taxon("XA.1.2", is_tip=False),
+            ]
+        )
+    assert isinstance(e_info.value, ValueError)
+
+    with pytest.raises(Exception) as e_info:
+        pango_phylo_taxonomy.validate(
+            [
+                Taxon("", is_tip=True),
+                Taxon("XA.1.2", is_tip=False),
+            ]
+        )
+    assert isinstance(e_info.value, ValueError)
+
+
 def test_ancestors(pango_phylo_taxonomy):
     expected = [
         Taxon("XA.1.2", is_tip=False),
