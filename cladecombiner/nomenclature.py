@@ -114,7 +114,7 @@ class Nomenclature(ABC):
         invalid = [name for name in names if not self.is_valid_name(name)]
         if len(invalid) > 0:
             raise ValueError(
-                f"The following names are invalid under the provided Nomenclature ({self.name()}): {invalid} "
+                f"The following names are invalid under the provided Nomenclature ({self.name()}): {invalid}"
             )
 
     def __str__(self):
