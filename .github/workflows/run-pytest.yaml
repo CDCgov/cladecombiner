@@ -8,9 +8,6 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directories: []
 
     steps:
     - name: Checkout
