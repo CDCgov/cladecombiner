@@ -326,37 +326,60 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
     as in RSV nomenclature) or not (such as in Pango nomenclature).
 
     An external file storing the alias shortcuts is required.
+
+    This class is partially abstract and should not directly be used to initialize
+    Nomenclature objects.
     """
 
     def __init__(
         self,
-        alias_map_hybrid,
-        charsets,
-        cumulative_alias,
-        max_sublevels,
-        root,
-        sep,
-        special,
+        alias_map_hybrid: Collection[type],
+        charsets: Sequence[set],
+        cumulative_alias: bool,
+        max_sublevels: int,
+        root: str,
+        sep: str,
+        special: Container,
+        name: str,
     ):
-        """ """
+        """
+        Initialization of PangoLikeNomenclature objects.
+
+        Parameters
+        ----------
+        alias_map_hybrid : Collection[type]
+            Container type(s) used in alias map when hybrid ancestry is indicated.
+        charsets : Sequence[set]
+            Defines what's allowed in alias names [0] and sublevel names [1]
+        cumulative_alias: bool
+            Does the alias accumulate (like RSV system) or not (like Pango)
+        max_sublevels : int
+            Defines maximum number of sublevels before aliasing must be done, 3 for
+            Pango SARS-CoV-2.
+        root : str
+            Name for the root taxon. If not explicitly specified by naming system,
+            anything that will not conflict with other taxon names could be used.
+        sep : str
+            Defines what separates the levels of the name, "." in Pango and RSV.
+        special : Container
+            Defines what aliases are allowed to appear alone, such as "A" in Pango
+            SARS-CoV-2.
+        name : str
+            The name of this nomenclature system, e.g. PangoNomenclature(SARS-CoV-2).
+        """
+        self.alias_map_hybrid: Collection[type] = alias_map_hybrid
+        self.charsets: Sequence[set] = charsets
+        self.cumulative_alias: bool = cumulative_alias
+        self.max_sublevels: int = max_sublevels
+        self.root: str = root
+        self.sep: str = sep
+        self.special: Container = special
+        self._name: str = name
+
         self.alias_map: dict = {}
         "Defines mapping to make longer names from shorter ones"
-        self.alias_map_hybrid: Collection[type] = alias_map_hybrid
-        "Container type(s) used in alias map when hybrid ancestry is indicated"
         self.alias_map_inv: dict = {}
         "Defines mapping to make shorter names from longer ones"
-        self.charsets: Sequence[set] = charsets
-        "Defines what's allowed in alias names [0] and sublevel names [1]"
-        self.cumulative_alias: bool = cumulative_alias
-        "Does the alias accumulate (like RSV system) or not (like Pango)"
-        self.max_sublevels: int = max_sublevels
-        "Defines maximum number of sublevels before aliasing must be done"
-        self.root: str = root
-        "Name for the root taxon"
-        self.sep: str = sep
-        "Defines what separates the levels of the name"
-        self.special: Container = special
-        "Defines what aliases are allowed to appear alone"
 
     ##############################
     # Superclass implementations #
@@ -403,6 +426,9 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
             if not set(lvl) < self.charsets[1]:
                 return False
         return True
+
+    def name(self) -> str:
+        return self._name
 
     ########################
     # Superclass overrides #
@@ -729,12 +755,8 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         parts = self.partition_name(name)
         n = self.max_sublevels * depth
         alias = None
-        # print("Trying to find shorter form of " + name)
         for k, v in self.alias_map_inv.items():
             kl = self.partition_name(k)
-            # print(">> " + str(k) + " : " + str(v))
-            # print(">>>> " + str(kl[1]) + " == " + str(parts[1]))
-            # print(">>>> " + str(self.partition_name(self.longer_name(k))[1][:n]) + " == " + str(parts[1][:n]))
             if (
                 kl[1] == parts[1]
                 or self.partition_name(self.longer_name(k))[1][:n]
@@ -848,44 +870,6 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
                         + '")'
                     )
 
-    def setup_alias_map(self, fp: Optional[str], url: Optional[str]) -> None:
-        """
-        Aliasing schemes come from either local or remote json files
-
-        The json is assumed to be a map from the alias to a longer form of the name (but not necessarily the longest possible form)
-
-        Parameters
-        ----------
-        fp : Optional[str]
-            File path of local json file containing the alias map.
-        url : Optional[str]
-            URL of online json file containing the alias map.
-
-        Must  supply one of fp or url.
-
-        Returns
-        -------
-        None
-            Reads the alias map and stores it in self.alias_map, then calls
-            self.sanitize_map() and self.invert_map().
-        """
-        # Should we be thinking about encoding and/or defensive measures?
-        if fp:
-            alias_file = open(fp)
-            alias = json.load(alias_file)
-            alias_file.close()
-            self.alias_map = dict(alias)
-        elif url:
-            with urllib.request.urlopen(url) as response:
-                self.alias_map = json.loads(response.read().decode("utf8"))
-        else:
-            raise RuntimeError(
-                "Must supply either file path or URL to alias json"
-            )
-
-        self.sanitize_map()
-        self.invert_map()
-
     def shorter_name(self, name: str) -> str:
         """
         Get shortest form of a maximally-long name using aliases
@@ -959,10 +943,42 @@ class PangoNomenclature(PangoLikeNomenclature):
     """
     Pango nomenclature in the general sense, absent SARS-CoV-2- or mpox-specific features.
 
+    Nomenclatures for specific systems to which Pango is applied are initialized from
+    this class by filling in the system-specific details and providing a location for
+    the alias map. See __init__ for details.
+
     See: https://doi.org/10.1038/s41564-020-0770-5
     """
 
-    def __init__(self, alias_map_hybrid, max_sublevels, special):
+    def __init__(
+        self,
+        alias_map_hybrid: Collection[type],
+        max_sublevels: int,
+        special: Container,
+        system: str,
+        fp_alias_json: Optional[str] = None,
+        url_alias_json: Optional[str] = None,
+    ):
+        """
+        Initialization of PangoNomenclature objects.
+
+        Parameters
+        ----------
+        alias_map_hybrid : Collection[type]
+            Container type(s) used in alias map when hybrid ancestry is indicated.
+        max_sublevels : int
+            Defines maximum number of sublevels before aliasing must be done, 3 for
+            Pango SARS-CoV-2.
+        system : str
+            The nomenclature's name is taken to be f"PangoNomenclature({system})", e.g.
+            "PangoNomenclature(SARS-CoV-2)".
+        fp_alias_json: Optional[str]
+            A filepath to a local json providing the alias map. Must provide either
+            this or url_alias_json
+        url_alias_json: Optional[str]
+            A url to a remote json providing the alias map. Must provide either
+            this or fp_alias_json
+        """
         super().__init__(
             alias_map_hybrid=alias_map_hybrid,
             charsets=[set(string.ascii_uppercase), set(string.digits)],
@@ -971,9 +987,16 @@ class PangoNomenclature(PangoLikeNomenclature):
             root="",
             sep=r".",
             special=special,
+            name=f"PangoNomenclature({system})",
         )
         self.ambiguity = r"*"
-        self.tip = r"$"
+        self.fp_alias_json = fp_alias_json
+        self.url_alias_json = url_alias_json
+
+        if (self.fp_alias_json is None) and (self.url_alias_json is None):
+            raise ValueError(
+                "Must provide either a local or remote filepath to the alias json."
+            )
 
     ##############################
     # Superclass implementations #
@@ -1032,6 +1055,55 @@ class PangoNomenclature(PangoLikeNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
+    def setup_alias_map(self) -> None:
+        """
+        Sets up the alias and reverse alias maps.
+
+        The alias map will be retrieved preferentially from local using self.fp_alias
+        if it exists, otherwise it will be retrieved remotely using self.url_alias.
+        If neither are specified, a RuntimeError is raised.
+
+        Raw alias maps for Pango nomenclatures are (remote or local) json files
+        which provide either:
+            1. The long-form names to replace an alias
+            2. The parents of a recombinant
+
+        Neither of these need to be in the absolute longest form to work, so that,
+        for example, either "JN": "B.1.1.529.2.86.1" or "JN": "BA.2.86.1" would be
+        valid.
+
+        Parameters
+        ----------
+        fp : Optional[str]
+            File path of local json file containing the alias map.
+        url : Optional[str]
+            URL of online json file containing the alias map.
+
+        Must  supply one of fp or url.
+
+        Returns
+        -------
+        None
+            Reads the alias map and stores it in self.alias_map, then calls
+            self.sanitize_map() and self.invert_map().
+        """
+        # Should we be thinking about encoding and/or defensive measures?
+        if self.fp_alias_json:
+            alias_file = open(self.fp_alias_json)
+            alias = json.load(alias_file)
+            alias_file.close()
+            self.alias_map = dict(alias)
+        elif self.url_alias_json:
+            with urllib.request.urlopen(self.url_alias_json) as response:
+                self.alias_map = json.loads(response.read().decode("utf8"))
+        else:
+            raise RuntimeError(
+                "Must provide either a local or remote filepath to the alias json."
+            )
+
+        self.sanitize_map()
+        self.invert_map()
+
     ########################
     # Superclass overrides #
     ########################
@@ -1063,63 +1135,18 @@ class PangoNomenclature(PangoLikeNomenclature):
         return super().is_valid_name(name, min_sublevels, max_sublevels)
 
 
-class PangoSc2Nomenclature(PangoNomenclature):
-    """
-    Pango nomenclature for SARS-CoV-2.
+pango_sc2_nomenclature = PangoNomenclature(
+    alias_map_hybrid=[list],
+    max_sublevels=3,
+    special=["A", "B"],
+    system="SARS-CoV-2",
+    url_alias_json="https://raw.githubusercontent.com/cov-lineages/pango-designation/master/pango_designation/alias_key.json",
+)
+"""
+Pango nomenclature for SARS-CoV-2.
 
-    A PangoNomenclature with a specific .name() method, a known url for the
-    alias map, maximally 3 sublevels, and the special root descendants A and B.
+A PangoNomenclature with a specific .name() method, a known url for the
+alias map, maximally 3 sublevels, and the special root descendants A and B.
 
-    See: https://doi.org/10.1038/s41564-020-0770-5
-    """
-
-    def __init__(
-        self,
-        gh_alias_url="https://raw.githubusercontent.com/cov-lineages/pango-designation/master/pango_designation/alias_key.json",
-    ):
-        """
-        PangoSc2Nomenclature constructor
-        """
-
-        super().__init__(
-            alias_map_hybrid=[list], max_sublevels=3, special=["A", "B"]
-        )
-        self.gh_alias_url: str = gh_alias_url
-
-    ##############################
-    # Superclass implementations #
-    ##############################
-    def name(self) -> str:
-        return "PangoNomenclature(SARS-CoV-2)"
-
-    ########################
-    # Superclass overrides #
-    ########################
-
-    def setup_alias_map(
-        self, fp: Optional[str] = None, url: Optional[str] = None
-    ) -> None:
-        """
-        Aliasing schemes come from either local or remote json files.
-
-        The json is assumed to be a map from the alias to a longer form of the name (but not necessarily the longest possible form)
-
-        Parameters
-        ----------
-        fp : Optional[str]
-            File path of local json file containing the alias map.
-        url : Optional[str]
-            URL of online json file containing the alias map.
-            If None, pulls from the Pango SARS-CoV-2 GitHub repo.
-
-        Must  supply one of fp or url.
-
-        Returns
-        -------
-        None
-            Reads the alias map and stores it in self.alias_map, then calls
-            self.sanitize_map() and self.invert_map().
-        """
-        if url is None:
-            url = self.gh_alias_url
-        super().setup_alias_map(fp=fp, url=url)
+See: https://doi.org/10.1038/s41564-020-0770-5
+"""
