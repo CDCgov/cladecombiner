@@ -5,9 +5,10 @@ from typing import Any, Iterable
 import dendropy
 from param import Callable
 
-from cladecombiner.aggregator import Aggregation
 from cladecombiner.taxon import Taxon
 from cladecombiner.utils import validate_kwargs
+
+from .utils import Aggregation
 
 
 class AggregationScorer(ABC):
@@ -16,17 +17,17 @@ class AggregationScorer(ABC):
     """
 
     def __init__(self, **kwargs):
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def score(self, agg: Aggregation, **kwargs) -> float:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def process_for_components(
         self, agg: Aggregation, **kwargs
     ) -> dict["str", Any]:
-        pass
+        raise NotImplementedError()
 
 
 class DataScorer(ABC):
@@ -38,11 +39,11 @@ class DataScorer(ABC):
     """
 
     def __init__(self, **kwargs):
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def score(self, **kwargs) -> float:
-        pass
+        raise NotImplementedError()
 
 
 class TaxonScorer(ABC):
@@ -50,12 +51,12 @@ class TaxonScorer(ABC):
     A TaxonScorer scores the part of an aggregation which has to do
     """
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, **_):
+        raise NotImplementedError()
 
     @abstractmethod
     def score(self, **kwargs) -> float:
-        pass
+        raise NotImplementedError()
 
 
 class DecomposableAggregationScorer(AggregationScorer):

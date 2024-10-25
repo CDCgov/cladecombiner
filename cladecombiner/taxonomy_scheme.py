@@ -371,6 +371,28 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
     #################
     # Class methods #
     #################
+    def mrba(self, taxon: Taxon) -> Taxon:
+        r"""
+        Finds the most recent branching ancestor of a taxon, the most recent ancestor
+        in this taxon's history which is an internal node in the taxonomy tree.
+
+        In this tree, he MRBA of A, B, C, and D is E.
+        /--- A --- B --- C --- D
+        |
+        E
+        |
+        \--- F
+
+        Parameters
+        ----------
+        taxon : Taxon
+            The taxon for which we want the most recent branching ancestor.
+
+        Returns
+        -------
+        Taxon
+            The specified ancestor, or None if input taxon is the root.
+        """
 
     def map_from_tree(self) -> None:
         """

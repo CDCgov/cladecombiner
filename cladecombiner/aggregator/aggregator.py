@@ -5,38 +5,7 @@ from warnings import warn
 from ..taxon import Taxon
 from ..taxon_utils import sort_taxa
 from ..taxonomy_scheme import PhylogeneticTaxonomyScheme
-
-
-class Aggregation(dict[Taxon, Taxon]):
-    """
-    An object for aggregations, basically just a dictionary.
-    """
-
-    def _validate(
-        self, input_taxa: Iterable[Taxon], taxon_map: dict[Taxon, Taxon]
-    ):
-        """
-        Checks that all input taxa are in the mapping.
-        """
-        if set(taxon_map.keys()) != set(input_taxa):
-            raise RuntimeError(
-                "Mismatch between aggregated taxa and input taxa. Input taxa are: "
-                + str(input_taxa)
-                + " but aggregated taxa are "
-                + str(taxon_map.keys())
-            )
-
-    def __init__(
-        self, input_taxa: Iterable[Taxon], taxon_map: dict[Taxon, Taxon]
-    ):
-        self._validate(input_taxa, taxon_map)
-        super().__init__(taxon_map)
-
-    def to_str(self):
-        """
-        Get str : str map of taxa names
-        """
-        return {k.name: v.name for k, v in self.items()}
+from .utils import Aggregation
 
 
 class Aggregator(ABC):
