@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 import cladecombiner
@@ -26,9 +28,10 @@ def pango_with_toy_alias():
                                                                                                   |
                                                                                                   \---FLYING.8472---FLYING.8472.8472---FLYING.8472.8472.8472=CIRCUS
     """
-    pango = cladecombiner.PangoSc2Nomenclature()
+    pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["MONTY"]
-    pango.setup_alias_map(fp="tests/toy_alias.json")
+    pango.fp_alias_json = "tests/toy_alias.json"
+    pango.setup_alias_map()
     return pango
 
 
@@ -79,9 +82,10 @@ def pango_with_recomb_alias():
                                                                        \-----C.4-----/
     """
 
-    pango = cladecombiner.PangoSc2Nomenclature()
+    pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.setup_alias_map(fp="tests/recomb_alias.json")
+    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.setup_alias_map()
     return pango
 
 
@@ -90,9 +94,10 @@ def tax_tree():
     """
     A taxonomy tree constructed for taxa from the above recombinant alias history.
     """
-    pango = cladecombiner.PangoSc2Nomenclature()
+    pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.setup_alias_map(fp="tests/recomb_alias.json")
+    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.setup_alias_map()
 
     names = [
         "A",
@@ -126,9 +131,10 @@ def pango_phylo_taxonomy():
     """
     A taxonomy scheme using taxonomy tree for taxa from the above recombinant alias history.
     """
-    pango = cladecombiner.PangoSc2Nomenclature()
+    pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.setup_alias_map(fp="tests/recomb_alias.json")
+    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.setup_alias_map()
 
     names = [
         "A",

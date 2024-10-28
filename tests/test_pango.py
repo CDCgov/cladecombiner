@@ -1,10 +1,9 @@
 import pytest
 
-from cladecombiner import PangoSc2Nomenclature
+from cladecombiner import pango_sc2_nomenclature as pn
 
 
 def test_split():
-    pn = PangoSc2Nomenclature()
     assert pn.split("CIRCUS.1001.1002.1003") == [
         "CIRCUS",
         "1001",
@@ -14,7 +13,6 @@ def test_split():
 
 
 def test_join():
-    pn = PangoSc2Nomenclature()
     assert (
         pn.join(["CIRCUS", "1001", "1002", "1003"]) == "CIRCUS.1001.1002.1003"
     )
@@ -88,7 +86,6 @@ def test_validate(pango_with_toy_alias):
 
 
 def test_longer_name_nolist():
-    pn = PangoSc2Nomenclature()
     with pytest.raises(RuntimeError):
         pn.longer_name("CIRCUS.1001.1002.1003")
 
