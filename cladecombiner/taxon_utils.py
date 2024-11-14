@@ -87,7 +87,29 @@ def printable_taxon_list(taxa: Sequence[Taxon], sep: str = "\n") -> str:
     return print_str
 
 
-def sort_taxa(taxa: Iterable[Taxon], taxonomy_scheme: TreelikeTaxonomyScheme):
+def sort_taxa(
+    taxa: Iterable[Taxon], taxonomy_scheme: TreelikeTaxonomyScheme
+) -> list[Taxon]:
+    """
+    Sorts taxa into a phylogenetic preorder according to a taxonomy scheme, such that if
+    taxon X contains Y, Y comes before X.
+
+    For example, the Pango lineages [KP.1, JN.1, BA.2, BA.3] will be sorted such that (1) KP.1
+    comes before both JN.1 and BA.2 and (2) JN.1 appears before BA.2. The ordering of these
+    with respect to BA.3 is arbitrary, as BA.3 is sister to BA.2 and its descendants.
+
+    Parameters
+    ---------
+    taxa : Iterable[Taxon]
+        The Taxon objects to be sorted.
+    taxonomy_scheme : TreelikeTaxonomyScheme
+        The taxonomy scheme by which to sort the taxa.
+
+    Returns
+    -------
+    list[Taxon]
+        The sorted taxa.
+    """
     taxonomy_scheme.validate(taxa)
     return sorted(
         taxa,
