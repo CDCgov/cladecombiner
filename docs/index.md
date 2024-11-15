@@ -25,13 +25,14 @@ Thus, if needed, the ancestral `Taxon("JN.1", is_tip=False)` can have as a desce
 ## Usage
 
 If we have line-list data like this:
-| Lineage | Location | Date |
-| ------- | ---------| ---- |
-| BA.2 | IA | 2233-03-22 |
-| BA.2.86 | IA | 2233-03-22 |
-| JN.1.9.1 | IA | 2233-03-22 |
-| KP.1.1 | IA | 2233-03-22 |
-| FW.1.1.1 | IA | 2233-03-22 |
+
+| Lineage  | Location | Date       |
+| -------- | -------- | ---------- |
+| BA.2     | IA       | 2233-03-22 |
+| BA.2.86  | IA       | 2233-03-22 |
+| JN.1.9.1 | IA       | 2233-03-22 |
+| KP.1.1   | IA       | 2233-03-22 |
+| FW.1.1.1 | IA       | 2233-03-22 |
 
 cladecombiner is a tool that provides mappings so that we can make it look like this:
 
