@@ -2,6 +2,11 @@
 
 Using the `BasicPhylogeneticAggregator`, we can phylogenetically aggregate a set of observed taxa into a pre-defined set of aggregated taxa.
 
+That is, if we already know what aggregated taxa we want, we can use the `BasicPhylogeneticAggregator` to do this such that:
+
+- Explicit mappings can be recorded for all taxa (by storing the python `dict` to json)
+- The addition of new taxa to the input data can be handled with minimal pain (by re-running the same python code on the new input file)
+
 ## Observed taxa
 
 First, we need to get the observed taxa as `cladecombiner.Taxon` objects.
@@ -13,7 +18,7 @@ import cladecombiner
 taxa = cladecombiner.read_taxa("path/to/file")
 ```
 
-If we already have these as a list of strings, we can convert them readily:
+If we already have these as a list of strings in python, we can convert them:
 
 ```
 import cladecombiner
@@ -36,9 +41,8 @@ taxa = [cladecombiner.Taxon(lin, True) for lin in lineages]
 ```
 
 Note that we are declaring these to all be _tip_ taxa.
-In cladecombiner parlance, we use this to distinguish taxa which we have observed directly from those we have not.
-Observed taxa are tips in the tree of all relevant taxa, while all other taxa are internal nodes.
-The `read_taxa` utility function defaults to the assumption that all taxa are tips, while creating `Taxon` objects requires specifying either way.
+Internally, aggregation is simpler when we treat everything we can observe directly as a tip in the taxonomy tree.
+For more on this destinction, [see here](index.md#ancestral-versus-tip-taxa).
 
 ## Creating the taxonomy scheme
 
@@ -83,7 +87,7 @@ The command `print(tree.as_ascii_plot(plot_metric="level", show_internal_node_la
                          \---- BA.2
 ```
 
-The observed taxa are all tips, and the internal nodes are represented by `+` (since we have set `show_internal_node_labels=False`, otherwise they would be named and the tree would get quite wide).
+The observed taxa are all tips, and the internal nodes are represented by `+` (names not shown for compactness, set `show_internal_node_labels=True` to see these).
 Some of these nodes here have only one child, while others have many, because cladecombiner makes this tree to include every named Pango lineage in the complete histories of all lineages.
 Thus, the first four nodes are the root (in cladecombiner parlance, an empty string, `""`), B, B.1, B.1.1, and B.1.1.529 (aka BA, but note that cladecombiner is pedantic about names and does not accept naked aliases like BA).
 Of these, only BA has multiple children among the observed lineages, so only it is a branching point in the tree.
@@ -117,7 +121,7 @@ agg = cladecombiner.BasicPhylogeneticAggregator(targets=target_taxa, taxonomy_sc
 res = agg.aggregate(input_taxa)
 ```
 
-The `res` object is a python dictionary (a `dict[Taxon, Taxon]`) which maps each of the observed lineages in `taxa` to some aggregated taxon.
+The `res` object is an `Aggregation` object, essentially just a `dict[Taxon, Taxon]`, which maps each of the observed lineages in `taxa` to some aggregated taxon.
 For the above input taxa and targets, the resulting mapping is:
 
 ```
@@ -134,6 +138,16 @@ Taxon(FW.1.1.1, tip=True)  : Taxon(BA.2, tip=False)
 Taxon(BA.2, tip=True)      : Taxon(BA.2, tip=False)
 ```
 
+## Using and saving the aggregation
+
+The resulting mapping can be used to re-name taxa in, for example, line-list data.
+A `dict[str,str]` can be obtained via `res.to_str()` which can be fed into the `replace` methods in [pandas](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html) or [polars](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.replace.html).
+
+The `res.to_str()` dictionary can be saved for posterity by writing to file using python's [`json.dumps()`](https://docs.python.org/3/library/json.html) function.
+
+Saving the python script for posterity is also recommended.
+Where the saved map is an exact record of how the particular input taxa were mapped, the script can be used on a new set of input taxa to produce a new mapping.
+
 ## Important settings
 
 When creating the `BasicPhylogeneticAggregator`, there are two important arguments: `off_target` and `sort_clades`.
@@ -142,8 +156,8 @@ When creating the `BasicPhylogeneticAggregator`, there are two important argumen
 
 The mapping for a taxon which is not in the `targets` is determined by `off_target`, which can be:
 
-- "other" to put all such taxa into `Taxon(other)`. **This is the default.**
-- "self" to map all such taxa to themselves.
+- `"other"` to put all such taxa into `Taxon(other, tip=False)`. **This is the default.**
+- `"self"` to map all such taxa to themselves.
 
 For example, if we hadn't included BA.2 in the targets, then the resulting map would have been, by default,
 
@@ -165,8 +179,8 @@ Taxon(BA.2, tip=True)      : Taxon(other, tip=False)
 
 The order in which clades are processed is important and is determined by `sort_clades`. When we process target a clade, we map all of its children to it, and then remove them from the pool of unmapped taxa. Thus, when nested target taxa are present, the order in which taxa are processed determines the mapping.
 
-- If `sort_clades` is True, then we process clades so that, when clade X contains clade Y, we always aggregate to Y before X. Thus, we process KP.1.1 before BA.2.86.1, and BA.2.86.1 before BA.1. **This is the default.**
-- If `sort_clades` is False, then we process clades in the order they are listed. As BA.2 is listed before BA.2.86.1 in the above declaration of `target_taxa`, all children of BA.2.86.1 would end up mapped to BA.2, and the aggregation would be
+- If `sort_clades` is `True`, then we process clades so that, when clade X contains clade Y, we always aggregate to Y before X. In other words, this approach creates aggregated taxa starting from the smallest/lowest-ranked (least-inclusive) taxon in any nested set and working its way to the root. Thus, we process KP.1.1 before BA.2.86.1.1, and BA.2.86.1 before BA.2. The resulting aggregated taxa might better be termed BA.5, KP.1.1, non-KP.1.1 BA.2.86, and non-BA.2.86.1 BA.2. **This is the default.**
+- If `sort_clades` is `False`, then we process clades in the order they are listed. As BA.2 is listed before BA.2.86.1 in the above declaration of `target_taxa`, all children of BA.2.86.1 would end up mapped to BA.2, and the aggregation would be
   ```
   Taxon(XCU, tip=True)       : Taxon(BA.2, tip=False)
   Taxon(BA.2.86, tip=True)   : Taxon(BA.2, tip=False)
