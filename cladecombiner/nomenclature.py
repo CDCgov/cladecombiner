@@ -506,15 +506,17 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
 
         Parameters
         ----------
-        taxon : str
+        name : str
             A taxon's name.
-        taxa : Sequence[str]
-            The taxa in which we search for the taxon
+        stop_at_hybrid : bool
+            If True, we get the history up to the most recent hybrid ancestor.
+            If False, we follow the ancestry of the 5'-most portion of the genome
+            through all hybrid ancestors.
 
         Returns
         -------
-        int
-            Position of match in taxa, or -1 if no match
+        Sequence[str]
+            This taxon's ancestors, starting from root-most.
         """
         if not self.alias_map:
             raise RuntimeError(
@@ -535,7 +537,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
 
         Parameters
         ----------
-        taxon : str
+        name : str
             A taxon's name.
         history : MutableSequence[str]
             The history we are in the process of building
@@ -927,7 +929,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
 
         Parameters
         ----------
-        Sequence[Sequence[str]]
+        components : Sequence[Sequence[str]]
             First element is Sequence of components in the aliasing portion of
             the taxon's name, second element is Sequence of sublevels.
 
@@ -1059,8 +1061,8 @@ class PangoNomenclature(PangoLikeNomenclature):
         """
         Sets up the alias and reverse alias maps.
 
-        The alias map will be retrieved preferentially from local using self.fp_alias
-        if it exists, otherwise it will be retrieved remotely using self.url_alias.
+        The alias map will be retrieved preferentially from local using self.fp_alias_json
+        if it exists, otherwise it will be retrieved remotely using self.url_alias_json.
         If neither are specified, a RuntimeError is raised.
 
         Raw alias maps for Pango nomenclatures are (remote or local) json files
@@ -1071,15 +1073,6 @@ class PangoNomenclature(PangoLikeNomenclature):
         Neither of these need to be in the absolute longest form to work, so that,
         for example, either "JN": "B.1.1.529.2.86.1" or "JN": "BA.2.86.1" would be
         valid.
-
-        Parameters
-        ----------
-        fp : Optional[str]
-            File path of local json file containing the alias map.
-        url : Optional[str]
-            URL of online json file containing the alias map.
-
-        Must  supply one of fp or url.
 
         Returns
         -------
