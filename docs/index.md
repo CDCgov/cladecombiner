@@ -24,7 +24,7 @@ Thus, if needed, the ancestral `Taxon("JN.1", is_tip=False)` can have as a desce
 
 ## Usage
 
-If we have line-list data like this:
+If we have line list data like this:
 
 | Lineage  | Location | Date       |
 | -------- | -------- | ---------- |
