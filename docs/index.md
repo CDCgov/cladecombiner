@@ -15,7 +15,7 @@ Cladecombiner defaults to monophyletic groupings of these taxa where possible, b
 
 ### Ancestral versus tip taxa
 
-When tracking ongoing evolution, the naming of new monophyletic taxa creates potential ambiguity when using the name of the now-non-monophyletic ancestor.
+When tracking ongoing evolution, the naming of new monophyletic taxa creates potential ambiguity when using the name of the now non-monophyletic ancestor.
 For example, JN.1 can refer to the ancestral taxon, which has children such as KP.2.
 It can also refer to JN.1 the taxon we can observe in data (a sequence which belongs to JN.1 but not any more specifically named descendant).
 
