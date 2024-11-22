@@ -140,7 +140,7 @@ Taxon(BA.2, tip=True)      : Taxon(BA.2, tip=False)
 
 ## Using and saving the aggregation
 
-The resulting mapping can be used to re-name taxa in, for example, line-list data.
+The resulting mapping can be used to rename taxa in, for example, line list data.
 A `dict[str,str]` can be obtained via `res.to_str()` which can be fed into the `replace` methods in [pandas](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html) or [polars](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.replace.html).
 
 The `res.to_str()` dictionary can be saved for posterity by writing to file using python's [`json.dumps()`](https://docs.python.org/3/library/json.html) function.
