@@ -101,6 +101,7 @@ Let us assume we want to aggregate to BA.2.86.1 (aka JN), BA.2, BA.5, and KP.1.1
 Aggregation requires us to be explicit about whether we are truly aggregating or not.
 Three of these represent actual aggregations of the observed taxa, as we have observed lineages which are children of BA.2, BA.5, and JN.
 However, as we have no children of KP.1.1 in our observed lineages, it is a tip.
+In order to keep tip taxa we want as aggregation targets from being added to any higher taxa which contain them, we must specify self-mappings for each of them due to the [algorithm for nested taxa](#sort_clades).
 
 ```
 target_taxa = [
@@ -154,7 +155,7 @@ When creating the `BasicPhylogeneticAggregator`, there are two important argumen
 
 ### `off_target`
 
-The mapping for a taxon which is not in the `targets` is determined by `off_target`, which can be:
+The mapping for a taxon which does not have an ancestor in the `targets` is determined by `off_target`, which can be:
 
 - `"other"` to put all such taxa into `Taxon(other, tip=False)`. **This is the default.**
 - `"self"` to map all such taxa to themselves.
