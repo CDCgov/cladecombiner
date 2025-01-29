@@ -1,0 +1,10 @@
+{
+    "PYTHONS" : "MONTY",
+    "FLYING" : "PYTHONS",
+    "CIRCUS" : "FLYING",
+    "LIFE" : "PYTHONS",
+    "OF" : "LIFE",
+    "BRIAN" : "OF",
+    "CARNIVAL" : "FLYING",
+    "PATHG" : "MONTY"
+}
