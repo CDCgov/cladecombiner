@@ -1,4 +1,5 @@
 import datetime
+import functools
 import json
 import string
 import warnings
@@ -130,7 +131,7 @@ class NomenclatureVersioner(ABC):
     that time.
     """
 
-    def __init__(self, names: Iterable[str]):
+    def __init__(self, names: Collection[str]):
         """
         NomenclatureVersioner initialization from list of known taxa.
         """
@@ -173,6 +174,195 @@ class HistoryAwareNomenclature(Nomenclature):
     @abstractmethod
     def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
         raise NotImplementedError()
+
+
+class VersionedNomenclature(HistoryAwareNomenclature):
+    """
+    A VersionedNomenclature knows its own as_of time, and should apply to that time.
+    """
+
+    @abstractmethod
+    def as_of() -> datetime.datetime:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_versioner(self, as_of: Datelike) -> NomenclatureVersioner:
+        if coerce_datelike(self.as_of()) > coerce_datelike(as_of):
+            raise ValueError(
+                "Cannot get NomenclatureVersioner for more recent versions of nomenclature."
+            )
+        raise NotImplementedError()
+
+
+class ArbitraryNomenclature(Nomenclature):
+    """
+    A class for nomenclature where a taxon's history is divorced from its name.
+    """
+
+    def __init__(
+        self,
+        known_taxa: Container[str],
+        root: str,
+        name: str,
+        ambiguous_fun: Callable,
+        hybrid_fun: Callable,
+    ):
+        """
+        Initialization of ArbitraryNomenclature objects.
+
+        Parameters
+        ----------
+        known_taxa : Container[str]
+            The names of all taxa recognized by this nomenclature system.
+        name : str
+            The name of this nomenclature system.
+        ambiguous_fun : Callable
+            A Callable(name: str) -> bool that takes in a name and returns whether
+            or not it is ambiguous.
+        hybrid_fun : Callable
+            A Callable(name: str) -> bool that takes in a name and returns whether
+            or not it is a hybrid.
+        root: str
+            The name of the taxon that includes all others.
+        """
+        self.taxa = known_taxa
+        self.root = root
+        self._name = name
+        self.ambiguous_fun = ambiguous_fun
+        self.hybrid_fun = hybrid_fun
+
+        if not isinstance(ambiguous_fun, Callable):
+            raise TypeError("Argument `ambiguous_fun` must be a callable.")
+
+        if not isinstance(hybrid_fun, Callable):
+            raise TypeError("Argument `hybrid_fun` must be a callable.")
+
+    def is_ambiguous(self, name: str) -> bool:
+        return self.ambiguous_fun(name)
+
+    def is_hybrid(self, name: str) -> bool:
+        return self.hybrid_fun(name)
+
+    def is_root(self, name: str) -> bool:
+        return name == self.root
+
+    def is_valid_name(self, name: str) -> bool:
+        return name in self.taxa
+
+    def name(self) -> str:
+        return self._name
+
+
+def ensure_taxa_known(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self.obtained_taxa:
+            self.populate_taxa()
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+class ArbitraryGithubNomenclature(
+    ArbitraryNomenclature, VersionedNomenclature
+):
+    """
+    An Arbitrary and Versioned Nomenclature stored on GitHub.
+    """
+
+    def __init__(
+        self,
+        repo_name: str,
+        master_list: str,
+        as_of: Datelike,
+        parser: Callable[[str], Collection[str]],
+        root: str,
+        name: str,
+        ambiguous_fun: Callable,
+        hybrid_fun: Callable,
+    ):
+        """
+        ArbitraryGithubNomenclature initialization.
+
+        Parameters
+        ----------
+        repo_name : str
+            The username/repo combination for the GitHub repository storing this nomenclature.
+        master_list : str
+            The filepath, relative to `repo_name` where the master list of known names is available.
+        as_of: Datelike
+            Sets the as-of date in fulfillment of VersionedNomenclature.
+        parser: Callable[[str], Collection[str]]
+            Used to extract the known taxa from the master list file.
+        name : str
+            The name of this nomenclature system.
+        ambiguous_fun : Callable
+            A Callable(name: str) -> bool that takes in a name and returns whether
+            or not it is ambiguous.
+        hybrid_fun : Callable
+            A Callable(name: str) -> bool that takes in a name and returns whether
+            or not it is a hybrid.
+        root: str
+            The name of the taxon that includes all others.
+        """
+        self.repo = repo_name
+        self.file_path = master_list
+        self._as_of = coerce_datelike(as_of)
+        self.gh_parser = parser
+        self.obtained_taxa = False
+
+        super().__init__(
+            known_taxa=[],
+            root=root,
+            name=name,
+            ambiguous_fun=ambiguous_fun,
+            hybrid_fun=hybrid_fun,
+        )
+
+    ##############################
+    # Superclass implementations #
+    ##############################
+
+    def as_of(self) -> datetime.datetime:
+        return self._as_of
+
+    def get_versioner(self, as_of: Datelike) -> NomenclatureVersioner:
+        return BruteForceNomenclatureVersioner.from_gh_file(
+            self.repo, self.file_path, as_of, self.gh_parser
+        )
+
+    ########################
+    # Superclass overrides #
+    ########################
+
+    @ensure_taxa_known
+    def is_ambiguous(self, name: str) -> bool:
+        return super().is_ambiguous(name)
+
+    @ensure_taxa_known
+    def is_hybrid(self, name: str) -> bool:
+        return super().is_hybrid(name)
+
+    @ensure_taxa_known
+    def is_root(self, name: str) -> bool:
+        return super().is_root(name)
+
+    @ensure_taxa_known
+    def is_valid_name(self, name: str) -> bool:
+        return super().is_valid_name(name)
+
+    #################
+    # Class methods #
+    #################
+
+    def populate_taxa(self):
+        """
+        Get taxa from GitHub repo. Separated from __init__ so as not to call on startup.
+        """
+        print(">>>>>> PINGING GITHUB <<<<<<")
+        self.taxa = self.gh_parser(
+            get_gh_file_contents_as_of(self.repo, self.file_path, self.as_of())
+        )
 
 
 class AlgorithmicNomenclature(Nomenclature):
@@ -1248,4 +1438,22 @@ A PangoNomenclature with a specific .name() method, a known url for the
 alias map, maximally 3 sublevels, and the special root descendants A and B.
 
 See: https://doi.org/10.1038/s41564-020-0770-5
+"""
+
+nextstrain_sc2_nomenclature = ArbitraryGithubNomenclature(
+    repo_name="nextstrain/ncov",
+    master_list="defaults/clades.tsv",
+    as_of=datetime.datetime.now(),
+    parser=_nextstrain_sc2_extractor,
+    root="19A",
+    name="NextstrainClades(SARS-CoV-2)",
+    ambiguous_fun=lambda _: False,
+    hybrid_fun=lambda _: False,
+)
+"""
+Nextstrain clade nomenclature for SARS-CoV-2.
+
+A pre-baked ArbitraryGithubNomenclature, does not include subclades.
+
+See: https://docs.nextstrain.org/projects/ncov/en/latest/reference/naming_clades.html
 """

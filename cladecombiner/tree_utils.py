@@ -4,6 +4,28 @@ from collections.abc import Sequence
 import dendropy
 
 
+def _add_edict_children(
+    node: dendropy.Node, name: str, parent_child: dict
+) -> None:
+    """
+    Recursively add to tree from a parent-child edge dictionary.
+
+    Parameters
+    ---------
+    node : dendropy.Node
+        Tip of subtree being added to.
+    name : str
+        name of this node
+    parent_child : dict
+        Dict of all children of all nodes that will eventually be in the tree.
+    """
+    if name in parent_child:
+        for child_name in parent_child[name]:
+            child = node.new_child()
+            child.label = child_name
+            _add_edict_children(child, child_name, parent_child)
+
+
 def add_paraphyletic_tips(
     phy: dendropy.Tree, tips: Sequence[str]
 ) -> dendropy.Tree:
@@ -61,6 +83,50 @@ def add_paraphyletic_tips(
                 )
     for nt in to_add:
         nt[0].add_child(nt[1])
+
+    return tree
+
+
+def edge_dict_to_tree(
+    child_parent: dict[str, str],
+) -> dendropy.Tree:
+    """
+    Turns a {child : parent} dictionary of taxon names into a dendropy Tree.
+
+    Parameters
+    ---------
+    child_parent : Optional[dict[str, list[str]]]
+        Dict giving parent taxon for all non-root taxa.
+
+    Returns
+    -------
+    PhylogeneticTaxonomyScheme
+        A PhylogeneticTaxonomyScheme using the tree specified by the given dict.
+    """
+    children = set(child_parent.keys())
+    parents = set(child_parent.values())
+
+    roots = parents.difference(children)
+    assert (
+        len(roots) == 1
+    ), f"There should be one root, not {len(roots)}. Found {roots}."
+    str_root = roots.pop()
+
+    parent_child = {}
+    for k, v in child_parent.items():
+        if v in parent_child:
+            parent_child[v].append(k)
+        else:
+            parent_child[v] = [k]
+
+    str_taxa = list(children)
+    str_taxa.append(str_root)
+    taxon_namespace = dendropy.TaxonNamespace(str_taxa)
+    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+
+    assert tree.seed_node is not None
+    tree.seed_node.label = str_root
+    _add_edict_children(tree.seed_node, str_root, parent_child)
 
     return tree
 
