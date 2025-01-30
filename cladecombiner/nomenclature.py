@@ -14,8 +14,6 @@ from sys import maxsize as integer_inf
 from typing import Any, Callable, Optional
 
 import dendropy
-import github.ContentFile
-from github import Github
 
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
@@ -1161,7 +1159,7 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
-    def setup_alias_map(self) -> None:
+    def setup_alias_map(self, as_of: Datelike) -> None:
         """
         Sets up the alias and reverse alias maps.
 
@@ -1191,13 +1189,10 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
             alias_file.close()
             self.alias_map = dict(alias)
         elif self.repo_alias_path:
-            repo = Github().get_repo(self.repo)
-            content_file = repo.get_contents(self.repo_alias_path)
-            assert isinstance(content_file, github.ContentFile.ContentFile)
-            assert isinstance(content_file.decoded_content, bytes)
-            self.alias_map = json.loads(
-                content_file.decoded_content.decode("utf-8")
+            alias_str = get_gh_file_contents_as_of(
+                self.repo, self.repo_alias_path, as_of
             )
+            self.alias_map = json.loads(alias_str)
         else:
             raise RuntimeError(
                 "Must provide either a local or remote filepath to the alias json."

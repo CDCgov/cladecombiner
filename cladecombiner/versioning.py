@@ -8,7 +8,7 @@ import github.ContentFile
 import github.Repository
 from github import Github
 
-Datelike: TypeAlias = Union[datetime.datetime, str]
+Datelike: TypeAlias = Union[datetime.datetime, str, None]
 
 
 def _twentythree_fiftynine(date: str) -> datetime.datetime:
@@ -99,7 +99,8 @@ def get_gh_file_contents_as_of(
     as_of: Datelike
         The as-of date for getting the file. If providing a str, must be
         YYYY-MM-DD, and the time be taken to be 23:59:59:999999 such that a
-        commit on the specified date will be used.
+        commit on the specified date will be used. If None, current time is
+        used.
 
     Returns
     -------
@@ -116,9 +117,11 @@ def get_gh_file_contents_as_of(
 
     repo = g.get_repo(repo_name)
 
-    sha = _get_gh_sha_as_of(repo, file_path, _parse_date(as_of))
-
-    content_file = repo.get_contents(file_path, ref=sha)
+    if as_of is None:
+        content_file = repo.get_contents(file_path)
+    else:
+        sha = _get_gh_sha_as_of(repo, file_path, _parse_date(as_of))
+        content_file = repo.get_contents(file_path, ref=sha)
 
     assert isinstance(content_file, github.ContentFile.ContentFile)
     assert isinstance(content_file.decoded_content, bytes)
