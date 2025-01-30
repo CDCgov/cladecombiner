@@ -1159,13 +1159,18 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
-    def setup_alias_map(self, as_of: Datelike) -> None:
+    def setup_alias_map(self, as_of: Datelike = None) -> None:
         """
         Sets up the alias and reverse alias maps.
 
-        The alias map will be retrieved preferentially from local using self.fp_alias_json
-        if it exists, otherwise it will be retrieved remotely using self.url_alias_json.
-        If neither are specified, a RuntimeError is raised.
+        The alias map will be retrieved preferentially from local using self.local_alias_path
+        if it exists, otherwise it will be retrieved from GitHub using self.repo_alias_path and
+        self.repo. If neither are specified, a RuntimeError is raised.
+
+        Can retrieve older committed versions of the alias json from GitHub, but this
+        must be used with care. Older aliasing lists know nothing of newer names
+        and both PangoNomenclature.longer_name() and PangoNomenclature.shorter_name()
+        can fail at runtime!
 
         Raw alias maps for Pango nomenclatures are (remote or local) json files
         which provide either:
@@ -1175,6 +1180,12 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
         Neither of these need to be in the absolute longest form to work, so that,
         for example, either "JN": "B.1.1.529.2.86.1" or "JN": "BA.2.86.1" would be
         valid.
+
+        Parameters
+        -------
+        as_of: Datelike
+            The date for which to retrieve the alias list when not reading from local.
+            None (default) for most current.
 
         Returns
         -------
@@ -1220,7 +1231,8 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
 
         Parameters
         ----------
-        name : string specifying name of the taxon
+        name : str
+            string specifying name of the taxon
 
         Returns
         -------

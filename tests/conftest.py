@@ -30,7 +30,7 @@ def pango_with_toy_alias():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["MONTY"]
-    pango.fp_alias_json = "tests/toy_alias.json"
+    pango.local_alias_path = "tests/toy_alias.json"
     pango.setup_alias_map()
     return pango
 
@@ -84,7 +84,7 @@ def pango_with_recomb_alias():
 
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
     return pango
 
@@ -96,7 +96,7 @@ def tax_tree():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
 
     names = [
@@ -133,7 +133,7 @@ def pango_phylo_taxonomy():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
 
     names = [
