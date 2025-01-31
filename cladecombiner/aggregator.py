@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from warnings import warn
 
-# from .nomenclature import VersionedNomenclature
+from .agg_utils import get_versioned_tip_taxa
+from .nomenclature import VersionedNomenclature
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
-
-# from .versioning import Datelike
+from .versioning import Datelike
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -162,20 +162,30 @@ class BasicPhylogeneticAggregator(Aggregator):
         return Aggregation(input_taxa, agg_map)
 
 
-# class HistoricalAggregator(Aggregator):
-#     def __init__(
-#         self,
-#         taxonomy_scheme: PhylogeneticTaxonomyScheme,
-#         versioning_provider: VersionedNomenclature,
-#         as_of: Datelike
-#     ):
-#         self.taxonomy_scheme = taxonomy_scheme
-#         self.versioner = versioning_provider.get_versioner(as_of)
+class HistoricalAggregator(Aggregator):
+    def __init__(
+        self,
+        taxonomy_scheme: PhylogeneticTaxonomyScheme,
+        versioning_provider: VersionedNomenclature,
+        as_of: Datelike,
+    ):
+        self.taxonomy_scheme = taxonomy_scheme
+        self.versioner = versioning_provider.get_versioner(as_of)
+        self.targets = None
 
-#     def get_targets(self):
-#         clade_names = get_clades_as_of(self.taxonomy_scheme.tree, self.versioner)
-#         for clade in clade_names:
-#             if self.taxonomy_scheme.
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        if self.targets is None:
+            self.targets = self.get_targets()
+        return BasicPhylogeneticAggregator(
+            self.targets, self.taxonomy_scheme
+        ).aggregate(input_taxa)
+
+    def get_targets(self) -> Iterable[Taxon]:
+        tips_as_of = get_versioned_tip_taxa(
+            self.taxonomy_scheme.tree, self.versioner
+        )
+        targets = [Taxon(name, is_tip) for name, is_tip in tips_as_of]
+        return targets
 
 
 class HomogenousAggregator(Aggregator):
