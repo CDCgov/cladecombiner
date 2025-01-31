@@ -63,21 +63,20 @@ def _get_gh_sha_as_of(
     RuntimeError
         If the as-of date is prior to the earliest commit.
     """
-    commits = repo.get_commits(path=file_path)
-    sha = None
-    # TODO: even for small histories this takes a noticeable amount of time, a smarter search would be good
-    for commit in commits:
-        time = datetime.datetime.strptime(
-            commit.commit.raw_data["committer"]["date"], "%Y-%m-%dT%H:%M:%S%z"
-        )
-        if time <= as_of:
-            sha = commit.sha
-            break
-    if sha is None:
-        raise RuntimeError(
-            f"Earliest commit in repo, at {time}, is after as-of date {as_of}."
-        )
-    return sha
+    commits = repo.get_commits(path=file_path, until=as_of)
+    try:
+        commit = commits[0]
+    # Intercept and provide a more interpretable error
+    except IndexError:
+        raise RuntimeError(f"Cannot find commit prior to as-of date {as_of}.")
+
+    time = datetime.datetime.strptime(
+        commit.commit.raw_data["committer"]["date"], "%Y-%m-%dT%H:%M:%S%z"
+    )
+
+    assert time <= as_of
+
+    return commit.sha
 
 
 def get_gh_file_contents_as_of(

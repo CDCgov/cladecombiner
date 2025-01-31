@@ -2,9 +2,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from warnings import warn
 
+# from .nomenclature import VersionedNomenclature
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
+
+# from .versioning import Datelike
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -157,6 +160,22 @@ class BasicPhylogeneticAggregator(Aggregator):
         self._check_missing(agg_map)
 
         return Aggregation(input_taxa, agg_map)
+
+
+# class HistoricalAggregator(Aggregator):
+#     def __init__(
+#         self,
+#         taxonomy_scheme: PhylogeneticTaxonomyScheme,
+#         versioning_provider: VersionedNomenclature,
+#         as_of: Datelike
+#     ):
+#         self.taxonomy_scheme = taxonomy_scheme
+#         self.versioner = versioning_provider.get_versioner(as_of)
+
+#     def get_targets(self):
+#         clade_names = get_clades_as_of(self.taxonomy_scheme.tree, self.versioner)
+#         for clade in clade_names:
+#             if self.taxonomy_scheme.
 
 
 class HomogenousAggregator(Aggregator):
