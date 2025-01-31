@@ -2,6 +2,7 @@ from .aggregator import ArbitraryAggregator as ArbitraryAggregator
 from .aggregator import (
     BasicPhylogeneticAggregator as BasicPhylogeneticAggregator,
 )
+from .aggregator import HistoricalAggregator as HistoricalAggregator
 from .aggregator import SerialAggregator as SerialAggregator
 from .nomenclature import PangoNomenclature as PangoNomenclature
 from .nomenclature import pango_sc2_nomenclature as pango_sc2_nomenclature

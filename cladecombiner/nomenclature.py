@@ -1159,7 +1159,7 @@ class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
-    def setup_alias_map(self, as_of: Datelike = None) -> None:
+    def setup_alias_map(self, as_of: Optional[Datelike] = None) -> None:
         """
         Sets up the alias and reverse alias maps.
 
