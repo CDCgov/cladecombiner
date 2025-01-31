@@ -2,38 +2,66 @@ import csv
 import datetime
 import re
 import string
-from typing import Iterable, TypeAlias, Union
+from typing import Iterable, Optional, TypeAlias, Union
 
 import github.ContentFile
 import github.Repository
 from github import Github
 
-Datelike: TypeAlias = Union[datetime.datetime, str, None]
+Datelike: TypeAlias = Union[datetime.datetime, datetime.date, str]
 
 
-def _twentythree_fiftynine(date: str) -> datetime.datetime:
+def _twentythree_fiftynine(date: str | datetime.date) -> datetime.datetime:
     """
     Take YYYY-MM-DD date string and return a datetime object for 23:59:59:999999 UTC on that date
     """
-    y, m, d = date.split("-")
+    if isinstance(date, str):
+        y, m, d = date.split("-")
+    elif isinstance(date, datetime.date):
+        y, m, d = date.year, date.month, date.day
+    else:
+        raise TypeError(f"Cannot interpret {date}.")
     return datetime.datetime(
         int(y), int(m), int(d), 23, 59, 59, 999999, datetime.timezone.utc
     )
 
 
-def _parse_date(as_of: Datelike) -> datetime.datetime:
+def coerce_datelike(datelike: Datelike) -> datetime.datetime:
     """
+    Makes sure a Datelike is a datetime.datetime with a specified timezone (defaults to UTC).
+
+    Parameters
+    ---------
+
     as_of: Datelike
-        The as-of date for getting the file. If providing a str, must be
-        YYYY-MM-DD, and the time be taken to be 23:59:59:999999 such that a
-        commit on the specified date will be used.
+        The date-like object.
+        - If this is a str, it must be YYYY-MM-DD, and the time be taken to be 23:59:59:999999 UTC.
+        - If it is a datetime.datetime, the timezone is checked. If absent, it is amended to UTC.
+
+    Returns
+    -------
+    datetime.datetime
+        The date, with time and/or timezone information appended.
+
+    Raises
+    -------
+    TypeError
+        If input is not a valid Datelike.
     """
-    if isinstance(as_of, str):
-        return _twentythree_fiftynine(as_of)
-    elif isinstance(as_of, datetime.date):
-        return as_of
+    if isinstance(datelike, str) or isinstance(datelike, datetime.date):
+        dt = _twentythree_fiftynine(datelike)
+    elif isinstance(datelike, datetime.date):
+        if datelike.tzinfo is None:
+            dt = datelike.replace(tzinfo=datetime.timezone.utc)
+        else:
+            dt = datelike
     else:
-        raise TypeError(f"Cannot parse date {as_of} of type {type(as_of)}")
+        raise TypeError(
+            f"Cannot parse date {datelike} of type {type(datelike)}"
+        )
+
+    assert dt.tzinfo is not None
+    return dt
 
 
 def _get_gh_sha_as_of(
@@ -80,7 +108,7 @@ def _get_gh_sha_as_of(
 
 
 def get_gh_file_contents_as_of(
-    repo_name: str, file_path: str, as_of: Datelike
+    repo_name: str, file_path: str, as_of: Optional[Datelike]
 ) -> str:
     """
     Get the contents of a file in a GitHub repository as of the last commit prior to `as_of`.
@@ -95,11 +123,12 @@ def get_gh_file_contents_as_of(
     file_path : str
         Relative path to file from repo root, e.g. cladecombiner/utils.py for
         the file where this function is defined.
-    as_of: Datelike
-        The as-of date for getting the file. If providing a str, must be
-        YYYY-MM-DD, and the time be taken to be 23:59:59:999999 such that a
-        commit on the specified date will be used. If None, current time is
-        used.
+    as_of: Optional[Datelike]
+        The as-of date for getting the file. If None, current contents are
+        retrieved. Otherwise, contents are obtained for the first commit prior
+        to `as_of`. Non-None arguments are first passed through coerce_datelike,
+        such that unspecified timezones are taken to be UTC, and dates without
+        times are 23:59:59:999999
 
     Returns
     -------
@@ -119,7 +148,7 @@ def get_gh_file_contents_as_of(
     if as_of is None:
         content_file = repo.get_contents(file_path)
     else:
-        sha = _get_gh_sha_as_of(repo, file_path, _parse_date(as_of))
+        sha = _get_gh_sha_as_of(repo, file_path, coerce_datelike(as_of))
         content_file = repo.get_contents(file_path, ref=sha)
 
     assert isinstance(content_file, github.ContentFile.ContentFile)
