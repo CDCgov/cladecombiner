@@ -3,7 +3,7 @@ from cladecombiner.agg_utils import get_versioned_tip_taxa
 
 
 def test_tip_clades(pango_historical_bundle):
-    versioned_taxa, pango_historical = pango_historical_bundle
+    _, pango_historical = pango_historical_bundle
 
     current_taxa = [
         "MONTY.42",
