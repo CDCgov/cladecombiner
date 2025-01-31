@@ -95,8 +95,10 @@ def _get_gh_sha_as_of(
     try:
         commit = commits[0]
     # Intercept and provide a more interpretable error
-    except IndexError:
-        raise RuntimeError(f"Cannot find commit prior to as-of date {as_of}.")
+    except IndexError as e:
+        raise RuntimeError(
+            f"There are no commits prior to as-of date {as_of}."
+        ) from e
 
     time = datetime.datetime.strptime(
         commit.commit.raw_data["committer"]["date"], "%Y-%m-%dT%H:%M:%S%z"
