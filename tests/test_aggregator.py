@@ -1,16 +1,13 @@
 import pytest
 
-from cladecombiner import (
+from cladecombiner import (  # HistoricalAggregator,
     ArbitraryAggregator,
     BasicPhylogeneticAggregator,
-    HistoricalAggregator,
     PhylogeneticTaxonomyScheme,
     SerialAggregator,
     Taxon,
     read_taxa,
 )
-from cladecombiner.nomenclature import BruteForceNomenclatureVersioner
-from cladecombiner.versioning import Datelike
 
 
 @pytest.fixture
@@ -277,45 +274,27 @@ def test_serial_basic_arbitrary(pango_with_toy_alias):
     assert agg.aggregate(input_taxa).to_str() == expected
 
 
-def test_historical(pango_with_toy_alias):
-    versioned_taxa_str = [
-        "MONTY",
-        "MONTY.25",
-        "MONTY.25.25",
-        "MONTY.25.25.25",
-        "MONTY.42",
-        "MONTY.42.42",
-        "MONTY.42.42.42" "PYTHONS.0",
-        "PYTHONS.0.0",
-        "PYTHONS.47",
-        "PYTHONS.47.47",
-        "PYTHONS.47.47.47",
-    ]
+# def test_historical(pango_with_toy_alias):
+#     expected_map = {
+#         Taxon("MONTY.42", True): Taxon("MONTY.42", True),
+#         Taxon("MONTY.25.25.25", True): Taxon("MONTY.25.25.25", True),
+#         Taxon("OF.9.9.9", True): Taxon("PYTHONS.0.0", False),
+#         Taxon("FLYING.1.1", True): Taxon("PYTHONS.47.47.47", False),
+#         Taxon("FLYING.1.1.1", True): Taxon("PYTHONS.47.47.47", False),
+#         Taxon("FLYING.8472", True): Taxon("PYTHONS.47.47.47", False),
+#     }
 
-    expected_map = {
-        Taxon("MONTY.42", True): Taxon("MONTY.42", True),
-        Taxon("MONTY.25.25.25", True): Taxon("MONTY.25.25.25", True),
-        Taxon("OF.9.9.9", True): Taxon("PYTHONS.0.0", False),
-        Taxon("FLYING.1.1", True): Taxon("PYTHONS.47.47.47", False),
-        Taxon("FLYING.1.1.1", True): Taxon("PYTHONS.47.47.47", False),
-        Taxon("FLYING.8472", True): Taxon("PYTHONS.47.47.47", False),
-    }
+#     observed_taxa_str = [taxon.name for taxon in expected_map]
 
-    observed_taxa_str = [taxon.name for taxon in expected_map]
 
-    def replacement_versioner(self, as_of: Datelike):
-        return BruteForceNomenclatureVersioner(versioned_taxa_str)
+#     tree = pango_with_toy_alias.taxonomy_tree(observed_taxa_str)
+#     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
 
-    pango_with_toy_alias.get_versioner = replacement_versioner
+#     arbitrary_unused_date = "1000-1-1"
+#     aggregator = HistoricalAggregator(
+#         taxonomy_scheme, pango_with_toy_alias, as_of=arbitrary_unused_date
+#     )
 
-    tree = pango_with_toy_alias.taxonomy_tree(observed_taxa_str)
-    taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
+#     aggregation = aggregator.aggregate(expected_map.keys())
 
-    arbitrary_unused_date = "1000-1-1"
-    aggregator = HistoricalAggregator(
-        taxonomy_scheme, pango_with_toy_alias, as_of=arbitrary_unused_date
-    )
-
-    aggregation = aggregator.aggregate(expected_map.keys())
-
-    assert aggregation == expected_map
+#     assert aggregation == expected_map

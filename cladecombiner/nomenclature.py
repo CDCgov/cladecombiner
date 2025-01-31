@@ -136,7 +136,7 @@ class NomenclatureVersioner(ABC):
         raise NotImplementedError()
 
 
-class BruteForceNomenclatureVersioner:
+class BruteForceNomenclatureVersioner(NomenclatureVersioner):
     """
     A NomenclatureVersioner that works via an exhaustive list of known taxa.
     """

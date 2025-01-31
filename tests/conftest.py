@@ -1,8 +1,11 @@
 import copy
+from typing import Optional
 
 import pytest
 
 import cladecombiner
+from cladecombiner.nomenclature import BruteForceNomenclatureVersioner
+from cladecombiner.versioning import Datelike
 
 
 @pytest.fixture(scope="session")
@@ -158,3 +161,30 @@ def pango_phylo_taxonomy():
             warn=False,
         )
     )
+
+
+@pytest.fixture(scope="session")
+def pango_historical_bundle(pango_with_toy_alias):
+    versioned_taxa_str = [
+        "",
+        "MONTY",
+        "MONTY.25",
+        "MONTY.25.25",
+        "MONTY.25.25.25",
+        "MONTY.42",
+        "MONTY.42.42",
+        "MONTY.42.42.42",
+        "PYTHONS.0",
+        "PYTHONS.0.0",
+        "PYTHONS.47",
+        "PYTHONS.47.47",
+        "PYTHONS.47.47.47",
+    ]
+
+    def replacement_versioner(as_of: Optional[Datelike]):
+        return BruteForceNomenclatureVersioner(versioned_taxa_str)
+
+    pango_historical = copy.deepcopy(pango_with_toy_alias)
+    pango_historical.get_versioner = replacement_versioner
+
+    return versioned_taxa_str, pango_historical
