@@ -177,7 +177,7 @@ class HistoricalAggregator(Aggregator):
         if self.targets is None:
             self.targets = self.get_targets()
         return BasicPhylogeneticAggregator(
-            self.targets, self.taxonomy_scheme
+            self.targets, self.taxonomy_scheme, off_target="self"
         ).aggregate(input_taxa)
 
     def get_targets(self) -> Iterable[Taxon]:
