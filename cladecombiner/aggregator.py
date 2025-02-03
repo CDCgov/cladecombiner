@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from warnings import warn
 
 from .agg_utils import get_versioned_tip_taxa
-from .nomenclature import VersionedNomenclature
+from .nomenclature import HistoryAwareNomenclature
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
@@ -166,7 +166,7 @@ class HistoricalAggregator(Aggregator):
     def __init__(
         self,
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
-        versioning_provider: VersionedNomenclature,
+        versioning_provider: HistoryAwareNomenclature,
         as_of: Datelike,
     ):
         self.taxonomy_scheme = taxonomy_scheme

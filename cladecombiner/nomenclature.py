@@ -177,12 +177,9 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
         return cls(extractor(file_content))
 
 
-class VersionedNomenclature(Nomenclature):
+class HistoryAwareNomenclature(Nomenclature):
     """
-    Abstract class for most general casting of Nomenclature
-
-    Nomenclature concerns rules for naming taxa, and what names may imply about
-    those taxa.
+    A non-abstract HistoryAwareNomenclature should know how to get information about prior versions.
     """
 
     @abstractmethod
@@ -1010,7 +1007,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         return self.join([*components[0], *components[1]])
 
 
-class PangoNomenclature(PangoLikeNomenclature, VersionedNomenclature):
+class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
     """
     Pango nomenclature in the general sense, absent SARS-CoV-2- or mpox-specific features.
 
