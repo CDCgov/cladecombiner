@@ -5,7 +5,7 @@ from typing import Optional
 import pytest
 
 import cladecombiner
-from cladecombiner.nomenclature import BruteForceNomenclatureVersioner
+from cladecombiner.nomenclature import NomenclatureVersioner
 
 
 @pytest.fixture(scope="session")
@@ -182,7 +182,7 @@ def pango_historical_bundle(pango_with_toy_alias):
     ]
 
     def replacement_versioner(as_of: Optional[datetime.date]):
-        return BruteForceNomenclatureVersioner(versioned_taxa_str)
+        return NomenclatureVersioner(versioned_taxa_str)
 
     pango_historical = copy.deepcopy(pango_with_toy_alias)
     pango_historical.get_versioner = replacement_versioner

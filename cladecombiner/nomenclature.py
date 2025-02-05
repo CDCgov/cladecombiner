@@ -124,18 +124,10 @@ class Nomenclature(ABC):
 
 class NomenclatureVersioner(ABC):
     """
-    A Callable such that NomenclatureVersioner(name: str) -> bool specifies whether the name
-    was recognized as of a previous iteration of the nomenclature.
-    """
-
-    @abstractmethod
-    def __call__(self, name: str) -> bool:
-        raise NotImplementedError()
-
-
-class BruteForceNomenclatureVersioner(NomenclatureVersioner):
-    """
-    A NomenclatureVersioner that works via an exhaustive list of known taxa.
+    In general: a Callable such that NomenclatureVersioner(name: str) -> bool
+    specifies whether the name was recognized as of a previous iteration of the
+    nomenclature. Specifically, works via an exhaustive list of known taxa at
+    that time.
     """
 
     def __init__(self, names: Iterable[str]):
@@ -1091,7 +1083,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
             raise RuntimeError(
                 "Cannot get versioner without function to extract taxa from file."
             )
-        versioner = BruteForceNomenclatureVersioner.from_gh_file(
+        versioner = NomenclatureVersioner.from_gh_file(
             repo=self.repo,
             file_path=self.repo_versioning_path,
             as_of=as_of,
