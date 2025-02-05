@@ -17,9 +17,13 @@ from typing import Any, Callable, Optional
 
 import dendropy
 
-from .github import _pango_sc2_extractor, get_gh_file_contents_as_of
+from .github import (
+    _nextstrain_sc2_extractor,
+    _pango_sc2_extractor,
+    get_gh_file_contents_as_of,
+)
 from .taxon import Taxon
-from .tree_utils import add_paraphyletic_tips
+from .tree_utils import _nextstrain_edge_matrix_parser, add_paraphyletic_tips
 
 
 class Nomenclature(ABC):
@@ -123,6 +127,48 @@ class Nomenclature(ABC):
         return self.name()
 
 
+class TreeProvider(Nomenclature):
+    @abstractmethod
+    def taxonomy_tree(
+        self,
+        taxa: Sequence[Taxon],
+        insert_tips: bool,
+        name_cleanup_fun: Optional[Callable[[str], str]] = None,
+        warn: bool = True,
+    ) -> dendropy.Tree:
+        """
+        Makes a taxonomy tree for a set of taxa.
+
+        A taxonomy tree is the core object of a PhylogeneticTaxonomyScheme,
+        being a phylogenetic representation of the relationships between
+        all taxa. It takes the form of a dendropy.Tree object where every
+        node has a label.
+
+        Parameters
+        ----------
+        taxa : Sequence[Taxon]
+            We will build the tree of these taxa.
+        insert_tips : boolean
+            If True, where a Taxon in the provided taxa is an internal node,
+            a tip is added to represent any paraphyletic observations of this
+            taxon using add_paraphyletic_tips().
+        name_cleanup_fun : Optional[Callable]
+            A function applied to all node labels after the tree is
+            constructed, to ensure validity of all names.
+        warn : bool
+            Should we warn the user if any taxa are dropped in the process
+            of making the tree?
+
+        Returns
+        -------
+        dendropy.Tree object with all nodes labeled
+            The taxonomy tree is given by the phylogeny and all nodes are
+            labeled with the taxon they represent. This tree may have nodes
+            with only one descendant.
+        """
+        raise NotImplementedError()
+
+
 class NomenclatureVersioner(ABC):
     """
     In general: a Callable such that NomenclatureVersioner(name: str) -> bool
@@ -173,24 +219,6 @@ class HistoryAwareNomenclature(Nomenclature):
 
     @abstractmethod
     def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
-        raise NotImplementedError()
-
-
-class VersionedNomenclature(HistoryAwareNomenclature):
-    """
-    A VersionedNomenclature knows its own as_of time, and should apply to that time.
-    """
-
-    @abstractmethod
-    def as_of() -> datetime.datetime:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_versioner(self, as_of: Datelike) -> NomenclatureVersioner:
-        if coerce_datelike(self.as_of()) > coerce_datelike(as_of):
-            raise ValueError(
-                "Cannot get NomenclatureVersioner for more recent versions of nomenclature."
-            )
         raise NotImplementedError()
 
 
@@ -256,26 +284,39 @@ class ArbitraryNomenclature(Nomenclature):
 def ensure_taxa_known(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        if not self.obtained_taxa:
+        if not self.known_taxa:
             self.populate_taxa()
         return func(self, *args, **kwargs)
 
     return wrapper
 
 
-class ArbitraryGithubNomenclature(
-    ArbitraryNomenclature, VersionedNomenclature
+def ensure_tree_known(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.master_tree is None:
+            self.populate_tree()
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+class NextstrainLikeNomenclature(
+    ArbitraryNomenclature, HistoryAwareNomenclature, TreeProvider
 ):
     """
-    An Arbitrary and Versioned Nomenclature stored on GitHub.
+    A class for arbitrary nomenclatures like Nextstrain, which are in GitHub
+    repositories that also contain taxonomic information.
     """
 
     def __init__(
         self,
-        repo_name: str,
+        repo: str,
+        as_of: datetime.date,
         master_list: str,
-        as_of: Datelike,
-        parser: Callable[[str], Collection[str]],
+        master_list_parser: Callable[[str], Collection[str]],
+        treefile: str,
+        treefile_parser: Callable[[str], dendropy.Tree],
         root: str,
         name: str,
         ambiguous_fun: Callable,
@@ -286,14 +327,18 @@ class ArbitraryGithubNomenclature(
 
         Parameters
         ----------
-        repo_name : str
+        repo : str
             The username/repo combination for the GitHub repository storing this nomenclature.
-        master_list : str
-            The filepath, relative to `repo_name` where the master list of known names is available.
-        as_of: Datelike
+        as_of: datetime.date
             Sets the as-of date in fulfillment of VersionedNomenclature.
-        parser: Callable[[str], Collection[str]]
+        master_list : str
+            The filepath, relative to `repo` where the master list of known names is available.
+        master_list_parser: Callable[[str], Collection[str]]
             Used to extract the known taxa from the master list file.
+        treefile : str
+            The filepath, relative to `repo` where the tree of taxa is stored.
+        treefile_parser: Callable[[str], dendropy.Tree]
+            Used to extract the tree of known taxa from the treefile.
         name : str
             The name of this nomenclature system.
         ambiguous_fun : Callable
@@ -305,11 +350,14 @@ class ArbitraryGithubNomenclature(
         root: str
             The name of the taxon that includes all others.
         """
-        self.repo = repo_name
-        self.file_path = master_list
-        self._as_of = coerce_datelike(as_of)
-        self.gh_parser = parser
+        self.repo = repo
+        self._as_of = as_of
+        self.master_list = master_list
+        self.master_list_parser = master_list_parser
+        self.treefile = treefile
+        self.treefile_parser = treefile_parser
         self.obtained_taxa = False
+        self.master_tree = None
 
         super().__init__(
             known_taxa=[],
@@ -323,12 +371,41 @@ class ArbitraryGithubNomenclature(
     # Superclass implementations #
     ##############################
 
-    def as_of(self) -> datetime.datetime:
-        return self._as_of
+    @ensure_tree_known
+    def taxonomy_tree(
+        self,
+        taxa: Sequence[Taxon],
+        insert_tips: bool,
+        name_cleanup_fun: Optional[Callable[[str], str]] = None,
+        warn: bool = True,
+    ) -> dendropy.Tree:
+        assert isinstance(self.master_tree, dendropy.Tree)
+        phy: dendropy.Tree = self.master_tree.clone(2)
+        assert isinstance(phy, dendropy.Tree)
 
-    def get_versioner(self, as_of: Datelike) -> NomenclatureVersioner:
-        return BruteForceNomenclatureVersioner.from_gh_file(
-            self.repo, self.file_path, as_of, self.gh_parser
+        unique_names = list(set([taxon.name for taxon in taxa if taxon.tip]))
+        if warn and (len(unique_names) < len(taxa)):
+            warnings.warn(
+                "Removed non-unique and/or non-tip taxa to build tree."
+            )
+
+        if name_cleanup_fun is not None:
+            for node in phy.preorder_node_iter():
+                node.label = name_cleanup_fun(node.label)
+
+        if insert_tips:
+            phy = add_paraphyletic_tips(phy, unique_names)
+
+        raise NotImplementedError("Need to filter out unused subtrees")
+        return phy
+
+    def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
+        if as_of > self.as_of():
+            raise ValueError(
+                "Cannot get versioner for more recent iterations of nomenclature."
+            )
+        return NomenclatureVersioner.from_gh_file(
+            self.repo, self.master_list, as_of, self.master_list_parser
         )
 
     ########################
@@ -354,14 +431,27 @@ class ArbitraryGithubNomenclature(
     #################
     # Class methods #
     #################
+    def as_of(self) -> datetime.date:
+        return self._as_of
 
     def populate_taxa(self):
         """
         Get taxa from GitHub repo. Separated from __init__ so as not to call on startup.
         """
         print(">>>>>> PINGING GITHUB <<<<<<")
-        self.taxa = self.gh_parser(
-            get_gh_file_contents_as_of(self.repo, self.file_path, self.as_of())
+        self.taxa = self.master_list_parser(
+            get_gh_file_contents_as_of(
+                self.repo, self.master_list, self.as_of()
+            )
+        )
+
+    def populate_tree(self):
+        """
+        Get tree from GitHub repo. Separated from __init__ so as not to call on startup.
+        """
+        print(">>>>>> PINGING GITHUB <<<<<<")
+        self.tree = self.treefile_parser(
+            get_gh_file_contents_as_of(self.repo, self.treefile, self.as_of())
         )
 
 
@@ -455,36 +545,6 @@ class AlgorithmicNomenclature(Nomenclature):
         name_cleanup_fun: Optional[Callable[[str], str]] = None,
         warn: bool = True,
     ) -> dendropy.Tree:
-        """
-        Makes a taxonomy tree for a set of taxa.
-
-        A taxonomy tree is the core object of a PhylogeneticTaxonomyScheme,
-        being a phylogenetic representation of the relationships between
-        all taxa. It takes the form of a dendropy.Tree object where every
-        node has a label.
-
-        Parameters
-        ----------
-        taxa : Sequence[Taxon]
-            We will build the tree of these taxa.
-        insert_tips : boolean
-            If True, where a Taxon in the provided taxa is an internal node,
-            a tip is added to represent any paraphyletic observations of this
-            taxon using add_paraphyletic_tips().
-        name_cleanup_fun : Optional[Callable]
-            A function applied to all node labels after the tree is
-            constructed, to ensure validity of all names.
-        warn : bool
-            Should we warn the user if any taxa are dropped in the process
-            of making the tree?
-
-        Returns
-        -------
-        dendropy.Tree object with all nodes labeled
-            The taxonomy tree is given by the phylogeny and all nodes are
-            labeled with the taxon they represent. This tree may have nodes
-            with only one descendant.
-        """
         unique_names = list(set([taxon.name for taxon in taxa if taxon.tip]))
         if warn and (len(unique_names) < len(taxa)):
             warnings.warn(
@@ -1440,11 +1500,13 @@ alias map, maximally 3 sublevels, and the special root descendants A and B.
 See: https://doi.org/10.1038/s41564-020-0770-5
 """
 
-nextstrain_sc2_nomenclature = ArbitraryGithubNomenclature(
-    repo_name="nextstrain/ncov",
-    master_list="defaults/clades.tsv",
+nextstrain_sc2_nomenclature = NextstrainLikeNomenclature(
+    repo="nextstrain/ncov",
     as_of=datetime.datetime.now(),
-    parser=_nextstrain_sc2_extractor,
+    master_list="defaults/clades.tsv",
+    master_list_parser=_nextstrain_sc2_extractor,
+    treefile="defaults/clade_hierarchy.tsv",
+    treefile_parser=_nextstrain_edge_matrix_parser,
     root="19A",
     name="NextstrainClades(SARS-CoV-2)",
     ambiguous_fun=lambda _: False,

@@ -1,13 +1,9 @@
-import csv
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable, Sequence
-from typing import Optional
 
 import dendropy
 
 from .taxon import Taxon
-from .tree_utils import edge_dict_to_tree
-from .versioning import Datelike, get_gh_file_contents_as_of
 
 
 class TaxonomyScheme(ABC):
@@ -290,52 +286,6 @@ class PhylogeneticTaxonomyScheme(TreelikeTaxonomyScheme):
         "The node representing each taxon, for ease of access"
 
         self.map_from_tree()
-
-    @classmethod
-    def from_edge_table_string(
-        cls,
-        edge_table: str,
-        delimiter: str,
-        parent_col: str | int,
-        child_col: str | int,
-    ):
-        """ """
-        if isinstance(parent_col, str) and isinstance(child_col, str):
-            use_names = True
-        elif isinstance(parent_col, int) and isinstance(child_col, int):
-            use_names = False
-        else:
-            raise TypeError(
-                "Must specify either indices or names for extracting columns."
-            )
-
-        if use_names:
-            reader = csv.DictReader(
-                edge_table.split("\n"), delimiter=delimiter
-            )
-        else:
-            reader = csv.reader(edge_table.split("\n"), delimiter=delimiter)
-
-        child_parent = {row[child_col]: row[parent_col] for row in reader}  # type: ignore #pylance can't track that we've already sanitized this
-
-        return cls(edge_dict_to_tree(child_parent))
-
-    @classmethod
-    def from_gh_edge_table(
-        cls,
-        repo_name: str,
-        file_path: str,
-        delimiter: str,
-        parent_col: str | int,
-        child_col: str | int,
-        as_of: Optional[Datelike] = None,
-    ):
-        """ """
-        edge_table = get_gh_file_contents_as_of(repo_name, file_path, as_of)
-
-        return cls.from_edge_table_string(
-            edge_table, delimiter, parent_col, child_col
-        )
 
     ########################
     # Superclass overrides #
