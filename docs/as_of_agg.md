@@ -1,6 +1,6 @@
-# Historical aggregation
+# As-of aggregation
 
-Historical aggregation is a tool that can be used to approximate the taxon labels that would have been assigned to sequences on an as-of date.
+As-of aggregation is a tool that can be used to approximate the taxon labels that would have been assigned to sequences on a prior (as-of) date given the taxon labels assigned on a later date.
 Without loss of generality, take the later date to be the present.
 Historical aggregation approximation takes in
 - current taxa (whose labels were assigned with the current version of the assignment tool) as `input_taxa`
@@ -44,13 +44,30 @@ scheme = cladecombiner.PhylogeneticTaxonomyScheme(tree)
 
 Let us take our as-of date to be 2023-01-01.
 In fact, we really need to specify a date and time (historical information is obtained through git histories using time stamps), so let us use midnight 2023-01-02.
-Note that the call to set up the `HistoricalAggregator` requires an internet connection (so that we can search the history of the public repository containing the data).
+Note that the call to set up the `AsOfAggregator` requires an internet connection (so that we can search the history of the public repository containing the data).
 ```
 import datetime
-agg = cladecombiner.HistoricalAggregator(taxonomy_scheme=scheme, versioning_provider=pn, as_of=datetime.datetime(2023, 1, 2))
+agg = cladecombiner.AsOfAggregator(taxonomy_scheme=scheme, versioning_provider=pn, as_of=datetime.datetime(2023, 1, 2))
 ```
 
 We can now aggregate our input taxa.
+
 ```
 res = agg.aggregate(taxa)
+```
+
+This yields the following `Aggregation`:
+
+```
+Taxon(BA.2, tip=True) : Taxon(BA.2, tip=True)
+Taxon(FW.1.1.1, tip=True) : Taxon(XBB.1, tip=False)
+Taxon(XCU, tip=True) : Taxon(XBC.1, tip=False)
+Taxon(BA.5.2.6, tip=True) : Taxon(BA.5.2.6, tip=True)
+Taxon(BQ.1.1.23, tip=True) : Taxon(BQ.1.1.23, tip=True)
+Taxon(KP.1.1, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(JN.6, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(JN.1.9.1, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(JN.9, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(XDQ, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(BA.2.86, tip=True) : Taxon(B.1.1.529, tip=False)
 ```
