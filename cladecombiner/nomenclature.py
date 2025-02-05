@@ -156,7 +156,7 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
         repo: str,
         file_path: str,
         as_of: Datelike,
-        extractor: Callable[[str], Iterable[str]],
+        extractor: Callable[[str], Collection[str]],
     ):
         """
         Gets the versioned list of known taxa as of date `as_of` from a file in a GitHub repo.
@@ -170,7 +170,7 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
         as_of: Datelike
             The as-of date for getting the file. Dates without times will be interpreted
             as 23:59:59:999999 such that a commit on the specified date will be used.
-        extractor: Callable[[str], Container[str]]
+        extractor: Callable[[str], Collection[str]]
             A function that processes the read GitHub file and returns the known taxa.
         """
         file_content = get_gh_file_contents_as_of(repo, file_path, as_of)
@@ -1028,7 +1028,9 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
         local_alias_path: Optional[str] = None,
         repo_alias_path: Optional[str] = None,
         repo_versioning_path: Optional[str] = None,
-        versioning_extractor: Optional[Callable[[str], Iterable[str]]] = None,
+        versioning_extractor: Optional[
+            Callable[[str], Collection[str]]
+        ] = None,
     ):
         """
         Initialization of PangoNomenclature objects.
@@ -1055,7 +1057,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
         repo_versioning_path: Optional[str]
             Path to file in repo which contains the list of recognized names. Allows
             instantiated class to provide a NomenclatureVersioner on request.
-        extractor: Optional[Callable[[str], Container[str]]]
+        extractor: Optional[Callable[[str], Collection[str]]]
             A function that processes the read file read from repo_versioning_path
             and returns the known taxa.
         """

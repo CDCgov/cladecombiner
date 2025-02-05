@@ -2,7 +2,7 @@ import csv
 import datetime
 import re
 import string
-from typing import Iterable, Optional, TypeAlias, Union
+from typing import Collection, Optional, TypeAlias, Union
 
 import github.ContentFile
 import github.Repository
@@ -161,7 +161,7 @@ def get_gh_file_contents_as_of(
 
 def _nextstrain_sc2_extractor(
     file_content: str, paranoid: bool = True
-) -> Iterable[str]:
+) -> Collection[str]:
     """
     For parsing Nextstrain clades listed in nextstrain/ncov/defaults/clades.tsv
     """
@@ -199,7 +199,7 @@ def _nextstrain_sc2_extractor(
     return set(taxa)
 
 
-def _pango_sc2_extractor(file_content: str) -> Iterable[str]:
+def _pango_sc2_extractor(file_content: str) -> Collection[str]:
     """
     For parsing Pango lineages listed in cov-lineages/pango-designation/lineage_notes.txt
     """
