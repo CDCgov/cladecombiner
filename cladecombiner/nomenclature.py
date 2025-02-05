@@ -163,7 +163,7 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
 
         Parameters
         ---------
-        repo_name : str
+        repo : str
             The username/repo combination.
         file_path : str
             Relative path to file from repo root.
@@ -1057,7 +1057,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
         repo_versioning_path: Optional[str]
             Path to file in repo which contains the list of recognized names. Allows
             instantiated class to provide a NomenclatureVersioner on request.
-        extractor: Optional[Callable[[str], Collection[str]]]
+        versioning_extractor: Optional[Callable[[str], Collection[str]]]
             A function that processes the read file read from repo_versioning_path
             and returns the known taxa.
         """
