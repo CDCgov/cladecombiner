@@ -2,10 +2,10 @@
 
 As-of aggregation is a tool that can be used to approximate the taxon labels that would have been assigned to sequences on a prior (as-of) date given the taxon labels assigned on a later date.
 Without loss of generality, take the later date to be the present.
-Historical aggregation approximation takes in
-- current taxa (whose labels were assigned with the current version of the assignment tool) as `input_taxa`
-- the current taxonomy tree (in the form of a `PhylogeneticTaxonomyScheme`)
-- information regarding what taxon names were recognized on the as-of date (this comes from a `HistoryAwareNomenclature`)
+Historical aggregation approximation takes in:
+- Current taxa (whose labels were assigned with the current version of the assignment tool) as `input_taxa`.
+- The current taxonomy tree (in the form of a `PhylogeneticTaxonomyScheme`).
+- Information regarding what taxon names were recognized on the as-of date (this comes from a `HistoryAwareNomenclature`).
 
 It outputs an `Aggregation` mapping each current taxon to the most recent ancestor which was recognized on the as-of date.
 
@@ -14,7 +14,8 @@ It outputs an `Aggregation` mapping each current taxon to the most recent ancest
 
 ## In practice
 
-We will continue with the taxa from [](fixed_agg_workflow/#observed-taxa)
+We will continue with the taxa from ["Phylogenetic aggregation to fixed targets."](fixed_agg_workflow.md)
+If you have not read that part of the documentation, you may wish to do so before proceeding.
 
 ```
 import cladecombiner
@@ -59,15 +60,21 @@ res = agg.aggregate(taxa)
 This yields the following `Aggregation`:
 
 ```
-Taxon(BA.2, tip=True) : Taxon(BA.2, tip=True)
-Taxon(FW.1.1.1, tip=True) : Taxon(XBB.1, tip=False)
-Taxon(XCU, tip=True) : Taxon(XBC.1, tip=False)
-Taxon(BA.5.2.6, tip=True) : Taxon(BA.5.2.6, tip=True)
+Taxon(BA.5.2.6, tip=True)  : Taxon(BA.5.2.6, tip=True)
 Taxon(BQ.1.1.23, tip=True) : Taxon(BQ.1.1.23, tip=True)
-Taxon(KP.1.1, tip=True) : Taxon(B.1.1.529, tip=False)
-Taxon(JN.6, tip=True) : Taxon(B.1.1.529, tip=False)
-Taxon(JN.1.9.1, tip=True) : Taxon(B.1.1.529, tip=False)
-Taxon(JN.9, tip=True) : Taxon(B.1.1.529, tip=False)
-Taxon(XDQ, tip=True) : Taxon(B.1.1.529, tip=False)
-Taxon(BA.2.86, tip=True) : Taxon(B.1.1.529, tip=False)
+Taxon(XCU, tip=True)       : Taxon(XBC.1, tip=False)
+Taxon(FW.1.1.1, tip=True)  : Taxon(XBB.1, tip=False)
+Taxon(JN.1.9.1, tip=True)  : Taxon(BA.2, tip=False)
+Taxon(JN.6, tip=True)      : Taxon(BA.2, tip=False)
+Taxon(JN.9, tip=True)      : Taxon(BA.2, tip=False)
+Taxon(KP.1.1, tip=True)    : Taxon(BA.2, tip=False)
+Taxon(XDQ, tip=True)       : Taxon(BA.2, tip=False)
+Taxon(BA.2, tip=True)      : Taxon(BA.2, tip=False)
+Taxon(BA.2.86, tip=True)   : Taxon(BA.2, tip=False)
 ```
+
+Several of these taxa were recognized on the as-of date, and so they map to themselves.
+The rest map to the most recent available ancestor.
+
+Note that if the current tree has both an internal node (`Taxon(name, tip=False)`) and a tip node (`Taxon(name, tip=True)`) for a taxon, aggregation will be to the internal node.
+Thus, while in our input data we have `Taxon(BA.2, tip=True)`, we place it in `Taxon(BA.2, tip=False)`.
