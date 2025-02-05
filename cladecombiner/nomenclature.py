@@ -1236,7 +1236,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
         bool
             True if this is a valid name under the Pango nomenclature.
         """
-        if self.is_special(name) or self.is_hybrid(name):
+        if self.is_root(name) or self.is_special(name) or self.is_hybrid(name):
             return True
         return super().is_valid_name(name, min_sublevels, max_sublevels)
 
