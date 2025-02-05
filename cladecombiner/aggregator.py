@@ -206,13 +206,13 @@ class HistoricalAggregator(Aggregator):
             if child.label != node.label and versioner(child.label)
         ]
 
-        was_tip = False
+        was_tip = True
         if len(children_as_of) > 0:
             for child in children_as_of:
                 HistoricalAggregator._get_versioned_taxa(
                     child, versioner, taxa
                 )
-            was_tip = True
+            was_tip = False
 
         taxa.append(
             (
