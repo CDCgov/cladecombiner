@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from warnings import warn
 
+import dendropy
+
 from .agg_utils import get_versioned_tip_taxa
-from .nomenclature import HistoryAwareNomenclature
+from .nomenclature import HistoryAwareNomenclature, NomenclatureVersioner
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
@@ -172,6 +174,42 @@ class HistoricalAggregator(Aggregator):
         self.taxonomy_scheme = taxonomy_scheme
         self.versioner = versioning_provider.get_versioner(as_of)
         self.targets = None
+
+    @staticmethod
+    def _get_versioned_tips(
+        node: dendropy.Node,
+        versioner: NomenclatureVersioner,
+        clades: list[tuple[str, bool]],
+    ):
+        children_as_of = [
+            child
+            for child in node.child_node_iter()
+            if child.label != node.label and versioner(child.label)
+        ]
+
+        if len(children_as_of) > 0:
+            for child in children_as_of:
+                HistoricalAggregator._get_versioned_tips(
+                    child, versioner, clades
+                )
+        else:
+            clades.append(
+                (
+                    node.label,
+                    node.is_leaf(),
+                )
+            )
+
+    @staticmethod
+    def get_versioned_tip_taxa(
+        tree: dendropy.Tree, versioner: NomenclatureVersioner
+    ) -> Iterable[tuple[str, bool]]:
+        tips = []
+        root = tree.seed_node
+        assert root is not None
+        assert versioner(root.label)
+        HistoricalAggregator._get_versioned_tips(root, versioner, tips)
+        return tips
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
         if self.targets is None:

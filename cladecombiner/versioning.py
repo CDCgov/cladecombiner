@@ -206,4 +206,4 @@ def _pango_sc2_extractor(file_content: str) -> Iterable[str]:
     lineages_reader = csv.DictReader(file_content.split("\n"), delimiter="\t")
     return set(
         row["Lineage"] for row in lineages_reader if row["Lineage"][0] != r"*"
-    )
+    ) | set([""])
