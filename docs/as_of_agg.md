@@ -44,7 +44,8 @@ scheme = cladecombiner.PhylogeneticTaxonomyScheme(tree)
 ```
 
 Let us take our as-of date to be 2023-01-01.
-In fact, we really need to specify a date and time (historical information is obtained through git histories using time stamps), so let us use midnight 2023-01-02.
+In fact, we really need to specify a date, time, and timezone (historical information is obtained through git histories using time stamps), but cladecombiner handles that under the hood.
+(The state as of last commit before 0:00:00 the day after the as-of day will be used.)
 Note that the call to set up the `AsOfAggregator` requires an internet connection (so that we can search the history of the public repository containing the data).
 ```
 import datetime
