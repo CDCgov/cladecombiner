@@ -1,4 +1,5 @@
 import copy
+import csv
 from collections.abc import Sequence
 
 import dendropy
@@ -208,3 +209,33 @@ def fully_labeled_trees_same(
     else:
         # Should never hit, required for type checking
         raise RuntimeError("Malformed tree, seed_node must be a dendropy.Node")
+
+
+def tree_from_edge_table_string(
+    edge_table: str,
+    delimiter: str,
+    parent_col: str | int,
+    child_col: str | int,
+):
+    """ """
+    if isinstance(parent_col, str) and isinstance(child_col, str):
+        use_names = True
+    elif isinstance(parent_col, int) and isinstance(child_col, int):
+        use_names = False
+    else:
+        raise TypeError(
+            "Must specify either indices or names for extracting columns."
+        )
+
+    if use_names:
+        reader = csv.DictReader(edge_table.split("\n"), delimiter=delimiter)
+    else:
+        reader = csv.reader(edge_table.split("\n"), delimiter=delimiter)
+
+    child_parent = {row[child_col]: row[parent_col] for row in reader}  # type: ignore #pylance can't track that we've already sanitized this
+
+    return edge_dict_to_tree(child_parent)
+
+
+def _nextstrain_edge_matrix_parser():
+    raise NotImplementedError()
