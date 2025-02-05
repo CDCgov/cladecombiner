@@ -2,8 +2,8 @@ import pytest
 
 from cladecombiner import (
     ArbitraryAggregator,
+    AsOfAggregator,
     BasicPhylogeneticAggregator,
-    HistoricalAggregator,
     PhylogeneticTaxonomyScheme,
     SerialAggregator,
     Taxon,
@@ -287,18 +287,18 @@ def test_tip_clades(pango_historical_bundle):
         "FLYING.8472",
     ]
 
-    taxa_as_of = HistoricalAggregator.get_versioned_taxa(
+    taxa_as_of = AsOfAggregator.get_versioned_taxa(
         pango_historical.taxonomy_tree(
             [Taxon(taxon, True) for taxon in current_taxa]
         ),
         pango_historical.get_versioner(None),
     )
-    taxa_tips_as_of = [tup for tup in taxa_as_of if tup[2]]
+    taxa_tips_as_of = [tup for tup in taxa_as_of if not tup[2]]
 
     expected_taxa_tips = [
-        ("MONTY.25.25.25", True, True),
-        ("PYTHONS.0.0", False, True),
-        ("PYTHONS.47.47.47", False, True),
+        ("MONTY.25.25.25", False, False),
+        ("PYTHONS.0.0", True, False),
+        ("PYTHONS.47.47.47", True, False),
     ]
 
     assert all(tt in expected_taxa_tips for tt in taxa_tips_as_of)
@@ -308,7 +308,7 @@ def test_historical(pango_historical_bundle):
     _, pango_historical = pango_historical_bundle
 
     expected_map = {
-        Taxon("MONTY.42", True): Taxon("MONTY.42", True),
+        Taxon("MONTY.42", True): Taxon("MONTY.42", False),
         Taxon("MONTY.25.25.25", True): Taxon("MONTY.25.25.25", True),
         Taxon("OF.9.9.9", True): Taxon("PYTHONS.0.0", False),
         Taxon("FLYING.1.1", True): Taxon("PYTHONS.47.47.47", False),
@@ -323,7 +323,7 @@ def test_historical(pango_historical_bundle):
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
 
     arbitrary_unused_date = "1000-1-1"
-    aggregator = HistoricalAggregator(
+    aggregator = AsOfAggregator(
         taxonomy_scheme, pango_historical, as_of=arbitrary_unused_date
     )
 

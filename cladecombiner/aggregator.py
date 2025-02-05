@@ -12,39 +12,6 @@ from .taxonomy_scheme import PhylogeneticTaxonomyScheme
 from .versioning import Datelike
 
 
-def promote_tips(
-    taxa: Iterable[Taxon], taxonomy_scheme: PhylogeneticTaxonomyScheme
-) -> Collection[Taxon]:
-    """
-    If a taxon could be a tip according to the taxonomy scheme, make it one, otherwise leave it.
-
-    Parameters
-    ----------
-    taxa : Iterable[Taxon]
-        The taxa we wish to promote to tips, if possible.
-
-    taxonomy_scheme : PhylogeneticTaxonomyScheme
-        The tree which we use to check taxon status.
-
-    Returns
-    ----------
-    Collection[Taxon]
-        One Taxon object for every element in input taxa, where all taxa that can be tips are.
-    """
-    promoted = []
-    for taxon in taxa:
-        if taxon.data is not None:
-            raise NotImplementedError(
-                "Taxon promotion is currently only possible on data-free taxa."
-            )
-        as_tip = Taxon(taxon.name, True)
-        if as_tip in taxonomy_scheme.taxon_to_node:
-            promoted.append(as_tip)
-        else:
-            promoted.append(taxon)
-    return promoted
-
-
 class Aggregation(dict[Taxon, Taxon]):
     """
     An object for aggregations, basically just a dictionary.
@@ -197,7 +164,7 @@ class BasicPhylogeneticAggregator(Aggregator):
         return Aggregation(input_taxa, agg_map)
 
 
-class HistoricalAggregator(Aggregator):
+class AsOfAggregator(Aggregator):
     def __init__(
         self,
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
@@ -209,7 +176,12 @@ class HistoricalAggregator(Aggregator):
         self.versioner = versioning_provider.get_versioner(as_of)
         self.targets = None
         """
-        HistoricalAggregator constructor.
+        AsOfAggregator constructor.
+
+        Note that when using an AsOfAggregator, the resulting aggregated taxa
+        will only be tips if the taxon is a tip now and was a tip then. That
+        is, if there is an ancestral/internal corresponding taxon available,
+        a current tip will be mapped to that taxon.
 
         Parameters
         ----------
@@ -232,7 +204,7 @@ class HistoricalAggregator(Aggregator):
         taxa: list[tuple[str, bool, bool]],
     ):
         """
-        Recursively add (taxon name, is currently a leaf, was a leaf as-of,) tuple to our list
+        Recursively add (taxon name, is currently internal, was internal as-of,) tuple to our list
         """
 
         children_as_of = [
@@ -241,19 +213,17 @@ class HistoricalAggregator(Aggregator):
             if child.label != node.label and versioner(child.label)
         ]
 
-        was_tip = True
+        was_internal = False
         if len(children_as_of) > 0:
             for child in children_as_of:
-                HistoricalAggregator._get_versioned_taxa(
-                    child, versioner, taxa
-                )
-            was_tip = False
+                AsOfAggregator._get_versioned_taxa(child, versioner, taxa)
+            was_internal = True
 
         taxa.append(
             (
                 node.label,
-                node.is_leaf(),
-                was_tip,
+                not node.is_leaf(),
+                was_internal,
             )
         )
 
@@ -262,7 +232,7 @@ class HistoricalAggregator(Aggregator):
         tree: dendropy.Tree, versioner: NomenclatureVersioner
     ) -> Iterable[tuple[str, bool, bool]]:
         """
-        Get a list of (taxon name, is tip, was tip,) tuples for all taxa in the
+        Get a list of (taxon name, is internal, was internal,) tuples for all taxa in the
         current tree which were recognized on the as-of date.
 
         Parameters
@@ -278,16 +248,16 @@ class HistoricalAggregator(Aggregator):
         ----------
         Iterable[tuple[str, bool, bool]]
             For each taxon that was recognized on the as-of date, its name,
-            whether it is a tip in the tree now, and whether it was purely
-            a tip in the tree then. Per cladecombiner style, a taxon name can
-            belong to both an ancestral taxon and a tip. For such taxa, only
-            the ancestor will be recorded in this list.
+            whether it has an internal node in the tree now, and whether it had
+            an internal node in the tree then. Per cladecombiner style, a taxon
+            name can belong to both an ancestral taxon and a tip. For such taxa,
+            only the ancestor will be recorded in this list.
         """
         taxa = []
         root = tree.seed_node
         assert root is not None
         assert versioner(root.label)
-        HistoricalAggregator._get_versioned_taxa(root, versioner, taxa)
+        AsOfAggregator._get_versioned_taxa(root, versioner, taxa)
         assert (
             len(taxa) > 0
         ), "Found no ancestors of input taxa for given as-of date."
@@ -307,12 +277,12 @@ class HistoricalAggregator(Aggregator):
         return agg
 
     def get_targets(self) -> Collection[Taxon]:
-        taxa_as_of = HistoricalAggregator.get_versioned_taxa(
+        taxa_as_of = AsOfAggregator.get_versioned_taxa(
             self.taxonomy_scheme.tree, self.versioner
         )
-        targets = [Taxon(name, is_tip) for name, is_tip, _ in taxa_as_of]
-        # Ensures self-mappings when possible, rather than Taxon(name, True) : Taxon(name, False)
-        return promote_tips(targets, self.taxonomy_scheme)
+        return [
+            Taxon(name, not is_internal) for name, is_internal, _ in taxa_as_of
+        ]
 
 
 class HomogenousAggregator(Aggregator):
