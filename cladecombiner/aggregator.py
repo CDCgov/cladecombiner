@@ -1,3 +1,4 @@
+import datetime
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from typing import Collection
@@ -9,7 +10,6 @@ from .nomenclature import HistoryAwareNomenclature, NomenclatureVersioner
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
-from .versioning import Datelike
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -169,7 +169,7 @@ class AsOfAggregator(Aggregator):
         self,
         taxonomy_scheme: PhylogeneticTaxonomyScheme,
         versioning_provider: HistoryAwareNomenclature,
-        as_of: Datelike,
+        as_of: datetime.date,
     ):
         self.as_of = as_of
         self.taxonomy_scheme = taxonomy_scheme
@@ -192,7 +192,7 @@ class AsOfAggregator(Aggregator):
             A Nomenclature with a .get_versioner(as_of) method that can be used
             to determine whether a taxon was recognized as-of the `as_of` date.
 
-        as_of : Datelike
+        as_of : datetime.date
             The as-of date. The time in the past which defines the set of
             recognized taxa into which we wish to aggregate the input taxa.
         """

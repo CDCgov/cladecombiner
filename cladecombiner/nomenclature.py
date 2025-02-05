@@ -1,3 +1,4 @@
+import datetime
 import json
 import string
 import warnings
@@ -15,13 +16,9 @@ from typing import Any, Callable, Optional
 
 import dendropy
 
+from .github import _pango_sc2_extractor, get_gh_file_contents_as_of
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
-from .versioning import (
-    Datelike,
-    _pango_sc2_extractor,
-    get_gh_file_contents_as_of,
-)
 
 
 class Nomenclature(ABC):
@@ -155,7 +152,7 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
         cls,
         repo: str,
         file_path: str,
-        as_of: Datelike,
+        as_of: datetime.date,
         extractor: Callable[[str], Collection[str]],
     ):
         """
@@ -167,9 +164,8 @@ class BruteForceNomenclatureVersioner(NomenclatureVersioner):
             The username/repo combination.
         file_path : str
             Relative path to file from repo root.
-        as_of: Datelike
-            The as-of date for getting the file. Dates without times will be interpreted
-            as 23:59:59:999999 such that a commit on the specified date will be used.
+        as_of: datetime.date
+            The as-of date for getting the file.
         extractor: Callable[[str], Collection[str]]
             A function that processes the read GitHub file and returns the known taxa.
         """
@@ -183,7 +179,7 @@ class HistoryAwareNomenclature(Nomenclature):
     """
 
     @abstractmethod
-    def get_versioner(self, as_of: Datelike) -> NomenclatureVersioner:
+    def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
         raise NotImplementedError()
 
 
@@ -1086,7 +1082,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
     ##############################
     # Superclass implementations #
     ##############################
-    def get_versioner(self, as_of: Datelike):
+    def get_versioner(self, as_of: datetime.date):
         if self.repo_versioning_path is None:
             raise RuntimeError(
                 "Cannot get versioner without path to file containing previously known taxa."
@@ -1158,7 +1154,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
-    def setup_alias_map(self, as_of: Optional[Datelike] = None) -> None:
+    def setup_alias_map(self, as_of: Optional[datetime.date] = None) -> None:
         """
         Sets up the alias and reverse alias maps.
 
@@ -1182,7 +1178,7 @@ class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
 
         Parameters
         -------
-        as_of: Datelike
+        as_of: datetime.date
             The date for which to retrieve the alias list when not reading from local.
             None (default) for most current.
 

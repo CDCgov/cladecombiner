@@ -1,11 +1,11 @@
 import copy
+import datetime
 from typing import Optional
 
 import pytest
 
 import cladecombiner
 from cladecombiner.nomenclature import BruteForceNomenclatureVersioner
-from cladecombiner.versioning import Datelike
 
 
 @pytest.fixture(scope="session")
@@ -181,7 +181,7 @@ def pango_historical_bundle(pango_with_toy_alias):
         "PYTHONS.47.47.47",
     ]
 
-    def replacement_versioner(as_of: Optional[Datelike]):
+    def replacement_versioner(as_of: Optional[datetime.date]):
         return BruteForceNomenclatureVersioner(versioned_taxa_str)
 
     pango_historical = copy.deepcopy(pango_with_toy_alias)
