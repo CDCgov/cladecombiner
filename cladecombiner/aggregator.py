@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import Collection
 from warnings import warn
 
 import dendropy
@@ -9,6 +10,39 @@ from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
 from .versioning import Datelike
+
+
+def promote_tips(
+    taxa: Iterable[Taxon], taxonomy_scheme: PhylogeneticTaxonomyScheme
+) -> Collection[Taxon]:
+    """
+    If a taxon could be a tip according to the taxonomy scheme, make it one, otherwise leave it.
+
+    Parameters
+    ----------
+    taxa : Iterable[Taxon]
+        The taxa we wish to promote to tips, if possible.
+
+    taxonomy_scheme : PhylogeneticTaxonomyScheme
+        The tree which we use to check taxon status.
+
+    Returns
+    ----------
+    Collection[Taxon]
+        One Taxon object for every element in input taxa, where all taxa that can be tips are.
+    """
+    promoted = []
+    for taxon in taxa:
+        if taxon.data is not None:
+            raise NotImplementedError(
+                "Taxon promotion is currently only possible on data-free taxa."
+            )
+        as_tip = Taxon(taxon.name, True)
+        if as_tip in taxonomy_scheme.taxon_to_node:
+            promoted.append(as_tip)
+        else:
+            promoted.append(taxon)
+    return promoted
 
 
 class Aggregation(dict[Taxon, Taxon]):
@@ -170,6 +204,7 @@ class HistoricalAggregator(Aggregator):
         versioning_provider: HistoryAwareNomenclature,
         as_of: Datelike,
     ):
+        self.as_of = as_of
         self.taxonomy_scheme = taxonomy_scheme
         self.versioner = versioning_provider.get_versioner(as_of)
         self.targets = None
@@ -226,26 +261,58 @@ class HistoricalAggregator(Aggregator):
     def get_versioned_taxa(
         tree: dendropy.Tree, versioner: NomenclatureVersioner
     ) -> Iterable[tuple[str, bool, bool]]:
-        tips = []
+        """
+        Get a list of (taxon name, is tip, was tip,) tuples for all taxa in the
+        current tree which were recognized on the as-of date.
+
+        Parameters
+        ----------
+        tree : dendropy.Tree
+            The tree which we use to do the mapping. Should come from a
+            PhylogeneticTaxonomyScheme.
+
+        versioner : NomenclatureVersioner
+            Used to determine if a name was recognized on the as-of date.
+
+        Returns
+        ----------
+        Iterable[tuple[str, bool, bool]]
+            For each taxon that was recognized on the as-of date, its name,
+            whether it is a tip in the tree now, and whether it was purely
+            a tip in the tree then. Per cladecombiner style, a taxon name can
+            belong to both an ancestral taxon and a tip. For such taxa, only
+            the ancestor will be recorded in this list.
+        """
+        taxa = []
         root = tree.seed_node
         assert root is not None
         assert versioner(root.label)
-        HistoricalAggregator._get_versioned_taxa(root, versioner, tips)
-        return tips
+        HistoricalAggregator._get_versioned_taxa(root, versioner, taxa)
+        assert (
+            len(taxa) > 0
+        ), "Found no ancestors of input taxa for given as-of date."
+        return taxa
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
         if self.targets is None:
             self.targets = self.get_targets()
-        return BasicPhylogeneticAggregator(
-            self.targets, self.taxonomy_scheme, off_target="self"
+        agg = BasicPhylogeneticAggregator(
+            self.targets,
+            self.taxonomy_scheme,
+            sort_clades=True,
+            off_target="self",
+            warn=False,
         ).aggregate(input_taxa)
+        assert all(self.versioner(taxon.name) for taxon in agg.values())
+        return agg
 
-    def get_targets(self) -> Iterable[Taxon]:
+    def get_targets(self) -> Collection[Taxon]:
         taxa_as_of = HistoricalAggregator.get_versioned_taxa(
             self.taxonomy_scheme.tree, self.versioner
         )
         targets = [Taxon(name, is_tip) for name, is_tip, _ in taxa_as_of]
-        return targets
+        # Ensures self-mappings when possible, rather than Taxon(name, True) : Taxon(name, False)
+        return promote_tips(targets, self.taxonomy_scheme)
 
 
 class HomogenousAggregator(Aggregator):

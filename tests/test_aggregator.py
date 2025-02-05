@@ -317,6 +317,9 @@ def test_historical(pango_historical_bundle):
     }
 
     tree = pango_historical.taxonomy_tree(expected_map.keys())
+    print(
+        tree.as_ascii_plot(plot_metric="level", show_internal_node_labels=True)
+    )
     taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
 
     arbitrary_unused_date = "1000-1-1"
