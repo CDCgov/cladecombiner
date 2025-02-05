@@ -173,19 +173,32 @@ class HistoricalAggregator(Aggregator):
         self.taxonomy_scheme = taxonomy_scheme
         self.versioner = versioning_provider.get_versioner(as_of)
         self.targets = None
+        """
+        HistoricalAggregator constructor.
+
+        Parameters
+        ----------
+        taxonomy_scheme : PhylogeneticTaxonomyScheme
+            The tree which we use to do the mapping.
+
+        versioning_provider : HistoryAwareNomenclature
+            A Nomenclature with a .get_versioner(as_of) method that can be used
+            to determine whether a taxon was recognized as-of the `as_of` date.
+
+        as_of : Datelike
+            The as-of date. The time in the past which defines the set of
+            recognized taxa into which we wish to aggregate the input taxa.
+        """
 
     @staticmethod
     def _get_versioned_taxa(
         node: dendropy.Node,
         versioner: NomenclatureVersioner,
-        taxa: list[tuple[str, bool]],
+        taxa: list[tuple[str, bool, bool]],
     ):
-        taxa.append(
-            (
-                node.label,
-                node.is_leaf(),
-            )
-        )
+        """
+        Recursively add (taxon name, is currently a leaf, was a leaf as-of,) tuple to our list
+        """
 
         children_as_of = [
             child
@@ -193,16 +206,26 @@ class HistoricalAggregator(Aggregator):
             if child.label != node.label and versioner(child.label)
         ]
 
+        was_tip = False
         if len(children_as_of) > 0:
             for child in children_as_of:
                 HistoricalAggregator._get_versioned_taxa(
                     child, versioner, taxa
                 )
+            was_tip = True
+
+        taxa.append(
+            (
+                node.label,
+                node.is_leaf(),
+                was_tip,
+            )
+        )
 
     @staticmethod
     def get_versioned_taxa(
         tree: dendropy.Tree, versioner: NomenclatureVersioner
-    ) -> Iterable[tuple[str, bool]]:
+    ) -> Iterable[tuple[str, bool, bool]]:
         tips = []
         root = tree.seed_node
         assert root is not None
@@ -218,10 +241,10 @@ class HistoricalAggregator(Aggregator):
         ).aggregate(input_taxa)
 
     def get_targets(self) -> Iterable[Taxon]:
-        tips_as_of = HistoricalAggregator.get_versioned_taxa(
+        taxa_as_of = HistoricalAggregator.get_versioned_taxa(
             self.taxonomy_scheme.tree, self.versioner
         )
-        targets = [Taxon(name, is_tip) for name, is_tip in tips_as_of]
+        targets = [Taxon(name, is_tip) for name, is_tip, _ in taxa_as_of]
         return targets
 
 

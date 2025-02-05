@@ -275,8 +275,37 @@ def test_serial_basic_arbitrary(pango_with_toy_alias):
     assert agg.aggregate(input_taxa).to_str() == expected
 
 
+def test_tip_clades(pango_historical_bundle):
+    _, pango_historical = pango_historical_bundle
+
+    current_taxa = [
+        "MONTY.42",
+        "MONTY.25.25.25",
+        "OF.9.9.9",
+        "FLYING.1.1",
+        "FLYING.1.1.1",
+        "FLYING.8472",
+    ]
+
+    taxa_as_of = HistoricalAggregator.get_versioned_taxa(
+        pango_historical.taxonomy_tree(
+            [Taxon(taxon, True) for taxon in current_taxa]
+        ),
+        pango_historical.get_versioner(None),
+    )
+    taxa_tips_as_of = [tup for tup in taxa_as_of if tup[2]]
+
+    expected_taxa_tips = [
+        ("MONTY.25.25.25", True, True),
+        ("PYTHONS.0.0", False, True),
+        ("PYTHONS.47.47.47", False, True),
+    ]
+
+    assert all(tt in expected_taxa_tips for tt in taxa_tips_as_of)
+
+
 def test_historical(pango_historical_bundle):
-    versioned_taxa, pango_historical = pango_historical_bundle
+    _, pango_historical = pango_historical_bundle
 
     expected_map = {
         Taxon("MONTY.42", True): Taxon("MONTY.42", True),
