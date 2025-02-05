@@ -4,7 +4,6 @@ from warnings import warn
 
 import dendropy
 
-from .agg_utils import get_versioned_tip_taxa
 from .nomenclature import HistoryAwareNomenclature, NomenclatureVersioner
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
@@ -176,11 +175,18 @@ class HistoricalAggregator(Aggregator):
         self.targets = None
 
     @staticmethod
-    def _get_versioned_tips(
+    def _get_versioned_taxa(
         node: dendropy.Node,
         versioner: NomenclatureVersioner,
-        clades: list[tuple[str, bool]],
+        taxa: list[tuple[str, bool]],
     ):
+        taxa.append(
+            (
+                node.label,
+                node.is_leaf(),
+            )
+        )
+
         children_as_of = [
             child
             for child in node.child_node_iter()
@@ -189,26 +195,19 @@ class HistoricalAggregator(Aggregator):
 
         if len(children_as_of) > 0:
             for child in children_as_of:
-                HistoricalAggregator._get_versioned_tips(
-                    child, versioner, clades
+                HistoricalAggregator._get_versioned_taxa(
+                    child, versioner, taxa
                 )
-        else:
-            clades.append(
-                (
-                    node.label,
-                    node.is_leaf(),
-                )
-            )
 
     @staticmethod
-    def get_versioned_tip_taxa(
+    def get_versioned_taxa(
         tree: dendropy.Tree, versioner: NomenclatureVersioner
     ) -> Iterable[tuple[str, bool]]:
         tips = []
         root = tree.seed_node
         assert root is not None
         assert versioner(root.label)
-        HistoricalAggregator._get_versioned_tips(root, versioner, tips)
+        HistoricalAggregator._get_versioned_taxa(root, versioner, tips)
         return tips
 
     def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
@@ -219,7 +218,7 @@ class HistoricalAggregator(Aggregator):
         ).aggregate(input_taxa)
 
     def get_targets(self) -> Iterable[Taxon]:
-        tips_as_of = get_versioned_tip_taxa(
+        tips_as_of = HistoricalAggregator.get_versioned_taxa(
             self.taxonomy_scheme.tree, self.versioner
         )
         targets = [Taxon(name, is_tip) for name, is_tip in tips_as_of]

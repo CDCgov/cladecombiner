@@ -204,6 +204,7 @@ def _pango_sc2_extractor(file_content: str) -> Iterable[str]:
     For parsing Pango lineages listed in cov-lineages/pango-designation/lineage_notes.txt
     """
     lineages_reader = csv.DictReader(file_content.split("\n"), delimiter="\t")
+    # TODO: probably ought to "coax" these names, requiring move of code elsewhere to avoid circular imports
     return set(
         row["Lineage"] for row in lineages_reader if row["Lineage"][0] != r"*"
     ) | set([""])
