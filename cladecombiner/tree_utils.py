@@ -1,6 +1,6 @@
-import copy
 import csv
 from collections.abc import Sequence
+from typing import Iterable
 
 import dendropy
 
@@ -70,7 +70,7 @@ def add_paraphyletic_tips(
     dendropy.Tree
         The tree with all added tips.
     """
-    tree = copy.deepcopy(phy)
+    tree = phy.clone(2)
     to_add = []
     for node in tree.preorder_node_iter():
         if node.is_internal():
@@ -235,3 +235,54 @@ def tree_from_edge_table_string(
     child_parent = {row[child_col]: row[parent_col] for row in reader}  # type: ignore #pylance can't track that we've already sanitized this
 
     return edge_dict_to_tree(child_parent)
+
+
+def _find_unobserved_subtrees(
+    node: dendropy.Node, target_tips: set[str], subtrees: list
+):
+    """
+    Recursively find nodes defining subtrees with no tips in `target_tips`
+    """
+    tip_descendants = set(n.label for n in node.leaf_nodes())
+    if not tip_descendants.isdisjoint(target_tips):
+        for child in node.child_node_iter():
+            # Don't remove paraphyletic tips we've already added
+            if child.label != node.label:
+                _find_unobserved_subtrees(child, target_tips, subtrees)
+    else:
+        subtrees.append(node)
+
+
+def prune_nonancestral(phy: dendropy.Tree, tips: Iterable[str]):
+    """
+    Prune a tree to only contain portions ancestral to provided tip taxa.
+
+    Tree is assumed to be node labeled as a PhylogeneticTaxonomyScheme.tree.
+
+    Parameters
+    ---------
+    phy : dendropy.Tree with a label for all nodes
+        The tree which we are to prune.
+    tips : Iterable[str]
+        The names of the only tips to be found in the desired pruned tree.
+
+    Returns
+    -------
+    dendropy.Tree
+        The tree pruned to only portions ancestral to the tips.
+    """
+    tree = phy.clone(2)
+    assert all(node.label is not None for node in tree.postorder_node_iter())
+
+    target_tips = set(tips)
+    tree_tips = set([leaf.label for leaf in tree.leaf_node_iter()])
+    assert target_tips.issubset(
+        tree_tips
+    ), f"Tree is missing target tips {target_tips.difference(tree_tips)}"
+
+    unobserved = []
+    assert isinstance(tree.seed_node, dendropy.Node)
+
+    _find_unobserved_subtrees(tree.seed_node, target_tips, unobserved)
+    for node in unobserved:
+        tree.prune_subtree(node, suppress_unifurcations=False)
