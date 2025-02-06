@@ -1,7 +1,46 @@
-import copy
+import csv
 from collections.abc import Sequence
+from typing import Iterable
 
 import dendropy
+
+
+def _add_edict_children(
+    node: dendropy.Node, name: str, parent_child: dict
+) -> None:
+    """
+    Recursively add to tree from a parent-child edge dictionary.
+
+    Parameters
+    ---------
+    node : dendropy.Node
+        Tip of subtree being added to.
+    name : str
+        name of this node
+    parent_child : dict
+        Dict of all children of all nodes that will eventually be in the tree.
+    """
+    if name in parent_child:
+        for child_name in parent_child[name]:
+            child = node.new_child()
+            child.label = child_name
+            _add_edict_children(child, child_name, parent_child)
+
+
+def _find_unobserved_subtrees(
+    node: dendropy.Node, target_tips: set[str], subtrees: list
+) -> None:
+    """
+    Recursively find nodes defining subtrees with no tips in `target_tips`
+    """
+    tip_descendants = set(n.label for n in node.leaf_nodes())
+    if not tip_descendants.isdisjoint(target_tips):
+        for child in node.child_node_iter():
+            # Don't remove paraphyletic tips we've already added
+            if child.label != node.label:
+                _find_unobserved_subtrees(child, target_tips, subtrees)
+    else:
+        subtrees.append(node)
 
 
 def add_paraphyletic_tips(
@@ -47,7 +86,7 @@ def add_paraphyletic_tips(
     dendropy.Tree
         The tree with all added tips.
     """
-    tree = copy.deepcopy(phy)
+    tree = phy.clone(2)
     to_add = []
     for node in tree.preorder_node_iter():
         if node.is_internal():
@@ -142,3 +181,118 @@ def fully_labeled_trees_same(
     else:
         # Should never hit, required for type checking
         raise RuntimeError("Malformed tree, seed_node must be a dendropy.Node")
+
+
+def prune_nonancestral(
+    phy: dendropy.Tree, tips: Iterable[str]
+) -> dendropy.Tree:
+    """
+    Prune a tree to only contain portions ancestral to provided tip taxa.
+
+    Tree is assumed to be node labeled as a PhylogeneticTaxonomyScheme.tree.
+
+    Parameters
+    ---------
+    phy : dendropy.Tree with a label for all nodes
+        The tree which we are to prune.
+    tips : Iterable[str]
+        The names of the only tips to be found in the desired pruned tree.
+
+    Returns
+    -------
+    dendropy.Tree
+        The tree pruned to only portions ancestral to the tips.
+    """
+    tree = phy.clone(2)
+    assert all(node.label is not None for node in tree.postorder_node_iter())
+
+    target_tips = set(tips)
+    tree_tips = set([leaf.label for leaf in tree.leaf_node_iter()])
+    assert target_tips.issubset(
+        tree_tips
+    ), f"Tree is missing target tips {target_tips.difference(tree_tips)}"
+
+    unobserved = []
+    assert isinstance(tree.seed_node, dendropy.Node)
+
+    _find_unobserved_subtrees(tree.seed_node, target_tips, unobserved)
+    for node in unobserved:
+        tree.prune_subtree(node, suppress_unifurcations=False)
+
+    for leaf in tree.leaf_node_iter():
+        if (
+            leaf.parent_node.label == leaf.label
+            and len(leaf.parent_node.child_nodes()) == 1
+        ):
+            tree.prune_subtree(leaf, suppress_unifurcations=False)
+    return tree
+
+
+def tree_from_edge_dict(
+    child_parent: dict[str, str],
+) -> dendropy.Tree:
+    """
+    Turns a {child : parent} dictionary of taxon names into a dendropy Tree.
+
+    Parameters
+    ---------
+    child_parent : Optional[dict[str, list[str]]]
+        Dict giving parent taxon for all non-root taxa.
+
+    Returns
+    -------
+    PhylogeneticTaxonomyScheme
+        A PhylogeneticTaxonomyScheme using the tree specified by the given dict.
+    """
+    children = set(child_parent.keys())
+    parents = set(child_parent.values())
+
+    roots = parents.difference(children)
+    assert (
+        len(roots) == 1
+    ), f"There should be one root, not {len(roots)}. Found {roots}."
+    str_root = roots.pop()
+
+    parent_child = {}
+    for k, v in child_parent.items():
+        if v in parent_child:
+            parent_child[v].append(k)
+        else:
+            parent_child[v] = [k]
+
+    str_taxa = list(children)
+    str_taxa.append(str_root)
+    taxon_namespace = dendropy.TaxonNamespace(str_taxa)
+    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+
+    assert tree.seed_node is not None
+    tree.seed_node.label = str_root
+    _add_edict_children(tree.seed_node, str_root, parent_child)
+
+    return tree
+
+
+def tree_from_edge_table_string(
+    edge_table: str,
+    delimiter: str,
+    parent_col: str | int,
+    child_col: str | int,
+):
+    """ """
+    if isinstance(parent_col, str) and isinstance(child_col, str):
+        use_names = True
+    elif isinstance(parent_col, int) and isinstance(child_col, int):
+        use_names = False
+    else:
+        raise TypeError(
+            "Must specify either indices or names for extracting columns."
+        )
+
+    if use_names:
+        reader = csv.DictReader(edge_table.split("\n"), delimiter=delimiter)
+    else:
+        reader = csv.reader(edge_table.split("\n"), delimiter=delimiter)
+
+    child_parent = {row[child_col]: row[parent_col] for row in reader}  # type: ignore #pylance can't track that we've already sanitized this
+
+    return tree_from_edge_dict(child_parent)

@@ -5,6 +5,9 @@ from .aggregator import (
 )
 from .aggregator import SerialAggregator as SerialAggregator
 from .nomenclature import PangoNomenclature as PangoNomenclature
+from .nomenclature import (
+    nextstrain_sc2_nomenclature as nextstrain_sc2_nomenclature,
+)
 from .nomenclature import pango_sc2_nomenclature as pango_sc2_nomenclature
 from .taxon import Taxon as Taxon
 from .taxon_utils import read_taxa as read_taxa
