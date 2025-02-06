@@ -219,9 +219,6 @@ def prune_nonancestral(
     for node in unobserved:
         tree.prune_subtree(node, suppress_unifurcations=False)
 
-    print(
-        tree.as_ascii_plot(plot_metric="level", show_internal_node_labels=True)
-    )
     for leaf in tree.leaf_node_iter():
         if (
             leaf.parent_node.label == leaf.label

@@ -288,7 +288,7 @@ class ArbitraryNomenclature(Nomenclature):
 def ensure_taxa_known(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        if not self.known_taxa:
+        if not self.taxa:
             self.populate_taxa()
         return func(self, *args, **kwargs)
 
@@ -379,7 +379,7 @@ class NextstrainLikeNomenclature(
     def taxonomy_tree(
         self,
         taxa: Sequence[Taxon],
-        insert_tips: bool,
+        insert_tips: bool = True,
         name_cleanup_fun: Optional[Callable[[str], str]] = None,
         warn: bool = True,
     ) -> dendropy.Tree:
@@ -402,11 +402,13 @@ class NextstrainLikeNomenclature(
         else:
             raise NotImplementedError("`insert_tips` must be true")
 
-        taxon_names = [taxon.name for taxon in unique_names]
-        return prune_nonancestral(phy, taxon_names)
+        return prune_nonancestral(phy, unique_names)
 
     def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
-        if as_of > self.as_of():
+        self_as_of = self.as_of()
+        if as_of > datetime.date(
+            self_as_of.year, self_as_of.month, self_as_of.day
+        ):
             raise ValueError(
                 "Cannot get versioner for more recent iterations of nomenclature."
             )
@@ -444,7 +446,6 @@ class NextstrainLikeNomenclature(
         """
         Get taxa from GitHub repo. Separated from __init__ so as not to call on startup.
         """
-        print(">>>>>> PINGING GITHUB <<<<<<")
         self.taxa = self.master_list_parser(
             get_gh_file_contents_as_of(
                 self.repo, self.master_list, self.as_of()
@@ -455,8 +456,7 @@ class NextstrainLikeNomenclature(
         """
         Get tree from GitHub repo. Separated from __init__ so as not to call on startup.
         """
-        print(">>>>>> PINGING GITHUB <<<<<<")
-        self.tree = self.treefile_parser(
+        self.master_tree = self.treefile_parser(
             get_gh_file_contents_as_of(self.repo, self.treefile, self.as_of())
         )
 

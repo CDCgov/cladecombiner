@@ -42,7 +42,7 @@ taxa = [cladecombiner.Taxon(lin, True) for lin in lineages]
 
 Note that we are declaring these to all be _tip_ taxa.
 Internally, aggregation is simpler when we treat everything we can observe directly as a tip in the taxonomy tree.
-For more on this destinction, [see here](index.md#ancestral-versus-tip-taxa).
+For more on this distinction, [see here](index.md#ancestral-versus-tip-taxa).
 
 ## Creating the taxonomy scheme
 
