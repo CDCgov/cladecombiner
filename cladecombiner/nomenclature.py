@@ -23,7 +23,11 @@ from .github import (
     get_gh_file_contents_as_of,
 )
 from .taxon import Taxon
-from .tree_utils import add_paraphyletic_tips, tree_from_edge_table_string
+from .tree_utils import (
+    add_paraphyletic_tips,
+    prune_nonancestral,
+    tree_from_edge_table_string,
+)
 
 
 class Nomenclature(ABC):
@@ -395,9 +399,11 @@ class NextstrainLikeNomenclature(
 
         if insert_tips:
             phy = add_paraphyletic_tips(phy, unique_names)
+        else:
+            raise NotImplementedError("`insert_tips` must be true")
 
-        raise NotImplementedError("Need to filter out unused subtrees")
-        return phy
+        taxon_names = [taxon.name for taxon in unique_names]
+        return prune_nonancestral(phy, taxon_names)
 
     def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
         if as_of > self.as_of():
