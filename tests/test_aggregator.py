@@ -2,6 +2,7 @@ import pytest
 
 from cladecombiner import (
     ArbitraryAggregator,
+    AsOfAggregator,
     BasicPhylogeneticAggregator,
     PhylogeneticTaxonomyScheme,
     SerialAggregator,
@@ -272,3 +273,62 @@ def test_serial_basic_arbitrary(pango_with_toy_alias):
         "FLYING.123.7": "ARBITRARY.1",
     }
     assert agg.aggregate(input_taxa).to_str() == expected
+
+
+def test_tip_clades(pango_historical_bundle):
+    _, pango_historical = pango_historical_bundle
+
+    current_taxa = [
+        "MONTY.42",
+        "MONTY.25.25.25",
+        "OF.9.9.9",
+        "FLYING.1.1",
+        "FLYING.1.1.1",
+        "FLYING.8472",
+    ]
+
+    taxa_as_of = AsOfAggregator.get_versioned_taxa(
+        pango_historical.taxonomy_tree(
+            [Taxon(taxon, True) for taxon in current_taxa]
+        ),
+        pango_historical.get_versioner(None),
+    )
+    taxa_tips_as_of = [tup for tup in taxa_as_of if not tup[2]]
+
+    expected_taxa_tips = [
+        ("MONTY.25.25.25", False, False),
+        ("PYTHONS.0.0", True, False),
+        ("PYTHONS.47.47.47", True, False),
+    ]
+
+    assert all(tt in expected_taxa_tips for tt in taxa_tips_as_of)
+
+
+def test_historical(pango_historical_bundle):
+    _, pango_historical = pango_historical_bundle
+
+    expected_map = {
+        Taxon("MONTY.42", True): Taxon("MONTY.42", False),
+        Taxon("MONTY.25.25.25", True): Taxon("MONTY.25.25.25", True),
+        Taxon("OF.9.9.9", True): Taxon("PYTHONS.0.0", False),
+        Taxon("FLYING.1.1", True): Taxon("PYTHONS.47.47.47", False),
+        Taxon("FLYING.1.1.1", True): Taxon("PYTHONS.47.47.47", False),
+        Taxon("FLYING.8472", True): Taxon("PYTHONS.47.47.47", False),
+    }
+
+    tree = pango_historical.taxonomy_tree(expected_map.keys())
+    print(
+        tree.as_ascii_plot(plot_metric="level", show_internal_node_labels=True)
+    )
+    taxonomy_scheme = PhylogeneticTaxonomyScheme(tree)
+
+    arbitrary_unused_date = "1000-1-1"
+    aggregator = AsOfAggregator(
+        taxonomy_scheme, pango_historical, as_of=arbitrary_unused_date
+    )
+
+    aggregation = aggregator.aggregate(expected_map.keys())
+    for k, v in aggregation.items():
+        print(f"{k} : {v}")
+
+    assert aggregation == expected_map

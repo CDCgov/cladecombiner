@@ -1,7 +1,12 @@
+import datetime
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import Collection
 from warnings import warn
 
+import dendropy
+
+from .nomenclature import HistoryAwareNomenclature, NomenclatureVersioner
 from .taxon import Taxon
 from .taxon_utils import sort_taxa
 from .taxonomy_scheme import PhylogeneticTaxonomyScheme
@@ -157,6 +162,127 @@ class BasicPhylogeneticAggregator(Aggregator):
         self._check_missing(agg_map)
 
         return Aggregation(input_taxa, agg_map)
+
+
+class AsOfAggregator(Aggregator):
+    def __init__(
+        self,
+        taxonomy_scheme: PhylogeneticTaxonomyScheme,
+        versioning_provider: HistoryAwareNomenclature,
+        as_of: datetime.date,
+    ):
+        self.as_of = as_of
+        self.taxonomy_scheme = taxonomy_scheme
+        self.versioner = versioning_provider.get_versioner(as_of)
+        self.targets = None
+        """
+        AsOfAggregator constructor.
+
+        Note that when using an AsOfAggregator, the resulting aggregated taxa
+        will only be tips if the taxon is a tip now and was a tip then. That
+        is, if there is an ancestral/internal corresponding taxon available,
+        a current tip will be mapped to that taxon.
+
+        Parameters
+        ----------
+        taxonomy_scheme : PhylogeneticTaxonomyScheme
+            The tree which we use to do the mapping.
+
+        versioning_provider : HistoryAwareNomenclature
+            A Nomenclature with a .get_versioner(as_of) method that can be used
+            to determine whether a taxon was recognized as-of the `as_of` date.
+
+        as_of : datetime.date
+            The as-of date. The time in the past which defines the set of
+            recognized taxa into which we wish to aggregate the input taxa.
+        """
+
+    @staticmethod
+    def _get_versioned_taxa(
+        node: dendropy.Node,
+        versioner: NomenclatureVersioner,
+        taxa: list[tuple[str, bool, bool]],
+    ):
+        """
+        Recursively add (taxon name, is currently internal, was internal as-of,) tuple to our list
+        """
+
+        children_as_of = [
+            child
+            for child in node.child_node_iter()
+            if child.label != node.label and versioner(child.label)
+        ]
+
+        was_internal = False
+        if len(children_as_of) > 0:
+            for child in children_as_of:
+                AsOfAggregator._get_versioned_taxa(child, versioner, taxa)
+            was_internal = True
+
+        taxa.append(
+            (
+                node.label,
+                not node.is_leaf(),
+                was_internal,
+            )
+        )
+
+    @staticmethod
+    def get_versioned_taxa(
+        tree: dendropy.Tree, versioner: NomenclatureVersioner
+    ) -> Iterable[tuple[str, bool, bool]]:
+        """
+        Get a list of (taxon name, is internal, was internal,) tuples for all taxa in the
+        current tree which were recognized on the as-of date.
+
+        Parameters
+        ----------
+        tree : dendropy.Tree
+            The tree which we use to do the mapping. Should come from a
+            PhylogeneticTaxonomyScheme.
+
+        versioner : NomenclatureVersioner
+            Used to determine if a name was recognized on the as-of date.
+
+        Returns
+        ----------
+        Iterable[tuple[str, bool, bool]]
+            For each taxon that was recognized on the as-of date, its name,
+            whether it has an internal node in the tree now, and whether it had
+            an internal node in the tree then. Per cladecombiner style, a taxon
+            name can belong to both an ancestral taxon and a tip. For such taxa,
+            only the ancestor will be recorded in this list.
+        """
+        taxa = []
+        root = tree.seed_node
+        assert root is not None
+        assert versioner(root.label)
+        AsOfAggregator._get_versioned_taxa(root, versioner, taxa)
+        assert (
+            len(taxa) > 0
+        ), "Found no ancestors of input taxa for given as-of date."
+        return taxa
+
+    def aggregate(self, input_taxa: Iterable[Taxon]) -> Aggregation:
+        if self.targets is None:
+            self.targets = self.get_targets()
+        agg = BasicPhylogeneticAggregator(
+            self.targets,
+            self.taxonomy_scheme,
+            sort_clades=True,
+            off_target="self",
+            warn=False,
+        ).aggregate(input_taxa)
+        assert all(self.versioner(taxon.name) for taxon in agg.values())
+        return agg
+
+    def get_targets(self) -> Collection[Taxon]:
+        taxa_as_of = AsOfAggregator.get_versioned_taxa(
+            self.taxonomy_scheme.tree, self.versioner
+        )
+        return [
+            Taxon(name, not is_internal) for name, is_internal, _ in taxa_as_of
+        ]
 
 
 class HomogenousAggregator(Aggregator):

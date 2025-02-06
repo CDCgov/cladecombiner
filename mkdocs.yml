@@ -4,6 +4,7 @@ nav:
   - index.md
   - api.md
   - fixed_agg_workflow.md
+  - as_of_agg.md
 
 theme:
   name: "material"

@@ -1,4 +1,5 @@
 from .aggregator import ArbitraryAggregator as ArbitraryAggregator
+from .aggregator import AsOfAggregator as AsOfAggregator
 from .aggregator import (
     BasicPhylogeneticAggregator as BasicPhylogeneticAggregator,
 )

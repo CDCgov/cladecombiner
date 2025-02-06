@@ -1,8 +1,11 @@
 import copy
+import datetime
+from typing import Optional
 
 import pytest
 
 import cladecombiner
+from cladecombiner.nomenclature import NomenclatureVersioner
 
 
 @pytest.fixture(scope="session")
@@ -30,7 +33,7 @@ def pango_with_toy_alias():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["MONTY"]
-    pango.fp_alias_json = "tests/toy_alias.json"
+    pango.local_alias_path = "tests/toy_alias.json"
     pango.setup_alias_map()
     return pango
 
@@ -84,7 +87,7 @@ def pango_with_recomb_alias():
 
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
     return pango
 
@@ -96,7 +99,7 @@ def tax_tree():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
 
     names = [
@@ -133,7 +136,7 @@ def pango_phylo_taxonomy():
     """
     pango = copy.deepcopy(cladecombiner.pango_sc2_nomenclature)
     pango.special = ["A"]
-    pango.fp_alias_json = "tests/recomb_alias.json"
+    pango.local_alias_path = "tests/recomb_alias.json"
     pango.setup_alias_map()
 
     names = [
@@ -158,3 +161,30 @@ def pango_phylo_taxonomy():
             warn=False,
         )
     )
+
+
+@pytest.fixture(scope="session")
+def pango_historical_bundle(pango_with_toy_alias):
+    versioned_taxa_str = [
+        "",
+        "MONTY",
+        "MONTY.25",
+        "MONTY.25.25",
+        "MONTY.25.25.25",
+        "MONTY.42",
+        "MONTY.42.42",
+        "MONTY.42.42.42",
+        "PYTHONS.0",
+        "PYTHONS.0.0",
+        "PYTHONS.47",
+        "PYTHONS.47.47",
+        "PYTHONS.47.47.47",
+    ]
+
+    def replacement_versioner(as_of: Optional[datetime.date]):
+        return NomenclatureVersioner(versioned_taxa_str)
+
+    pango_historical = copy.deepcopy(pango_with_toy_alias)
+    pango_historical.get_versioner = replacement_versioner
+
+    return versioned_taxa_str, pango_historical

@@ -1,6 +1,6 @@
+import datetime
 import json
 import string
-import urllib.request
 import warnings
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional
 
 import dendropy
 
+from .github import _pango_sc2_extractor, get_gh_file_contents_as_of
 from .taxon import Taxon
 from .tree_utils import add_paraphyletic_tips
 
@@ -119,6 +120,59 @@ class Nomenclature(ABC):
 
     def __str__(self):
         return self.name()
+
+
+class NomenclatureVersioner(ABC):
+    """
+    In general: a Callable such that NomenclatureVersioner(name: str) -> bool
+    specifies whether the name was recognized as of a previous iteration of the
+    nomenclature. Specifically, works via an exhaustive list of known taxa at
+    that time.
+    """
+
+    def __init__(self, names: Iterable[str]):
+        """
+        NomenclatureVersioner initialization from list of known taxa.
+        """
+        self.names = names
+
+    def __call__(self, name: str) -> bool:
+        return name in self.names
+
+    @classmethod
+    def from_gh_file(
+        cls,
+        repo: str,
+        file_path: str,
+        as_of: datetime.date,
+        extractor: Callable[[str], Collection[str]],
+    ):
+        """
+        Gets the versioned list of known taxa as of date `as_of` from a file in a GitHub repo.
+
+        Parameters
+        ---------
+        repo : str
+            The username/repo combination.
+        file_path : str
+            Relative path to file from repo root.
+        as_of: datetime.date
+            The as-of date for getting the file.
+        extractor: Callable[[str], Collection[str]]
+            A function that processes the read GitHub file and returns the known taxa.
+        """
+        file_content = get_gh_file_contents_as_of(repo, file_path, as_of)
+        return cls(extractor(file_content))
+
+
+class HistoryAwareNomenclature(Nomenclature):
+    """
+    A non-abstract HistoryAwareNomenclature should know how to get information about prior versions.
+    """
+
+    @abstractmethod
+    def get_versioner(self, as_of: datetime.date) -> NomenclatureVersioner:
+        raise NotImplementedError()
 
 
 class AlgorithmicNomenclature(Nomenclature):
@@ -941,7 +995,7 @@ class PangoLikeNomenclature(AlgorithmicNomenclature):
         return self.join([*components[0], *components[1]])
 
 
-class PangoNomenclature(PangoLikeNomenclature):
+class PangoNomenclature(PangoLikeNomenclature, HistoryAwareNomenclature):
     """
     Pango nomenclature in the general sense, absent SARS-CoV-2- or mpox-specific features.
 
@@ -958,8 +1012,13 @@ class PangoNomenclature(PangoLikeNomenclature):
         max_sublevels: int,
         special: Container,
         system: str,
-        fp_alias_json: Optional[str] = None,
-        url_alias_json: Optional[str] = None,
+        repo: str,
+        local_alias_path: Optional[str] = None,
+        repo_alias_path: Optional[str] = None,
+        repo_versioning_path: Optional[str] = None,
+        versioning_extractor: Optional[
+            Callable[[str], Collection[str]]
+        ] = None,
     ):
         """
         Initialization of PangoNomenclature objects.
@@ -974,12 +1033,21 @@ class PangoNomenclature(PangoLikeNomenclature):
         system : str
             The nomenclature's name is taken to be f"PangoNomenclature({system})", e.g.
             "PangoNomenclature(SARS-CoV-2)".
-        fp_alias_json: Optional[str]
+        repo : str
+            The username/repository pair for the GitHub repository hosting nomenclature
+            information.
+        local_alias_path: Optional[str]
             A filepath to a local json providing the alias map. Must provide either
-            this or url_alias_json
-        url_alias_json: Optional[str]
-            A url to a remote json providing the alias map. Must provide either
-            this or fp_alias_json
+            this or url_alias_json.
+        repo_alias_path: Optional[str]
+            Path to the alias json in the GitHub repository. Must provide either this
+            or local_alias_path.
+        repo_versioning_path: Optional[str]
+            Path to file in repo which contains the list of recognized names. Allows
+            instantiated class to provide a NomenclatureVersioner on request.
+        versioning_extractor: Optional[Callable[[str], Collection[str]]]
+            A function that processes the read file read from repo_versioning_path
+            and returns the known taxa.
         """
         super().__init__(
             alias_map_hybrid=alias_map_hybrid,
@@ -992,10 +1060,13 @@ class PangoNomenclature(PangoLikeNomenclature):
             name=f"PangoNomenclature({system})",
         )
         self.ambiguity = r"*"
-        self.fp_alias_json = fp_alias_json
-        self.url_alias_json = url_alias_json
+        self.repo = repo
+        self.local_alias_path = local_alias_path
+        self.repo_alias_path = repo_alias_path
+        self.repo_versioning_path = repo_versioning_path
+        self.versioning_extractor = versioning_extractor
 
-        if (self.fp_alias_json is None) and (self.url_alias_json is None):
+        if (self.local_alias_path is None) and (self.repo_alias_path is None):
             raise ValueError(
                 "Must provide either a local or remote filepath to the alias json."
             )
@@ -1003,6 +1074,24 @@ class PangoNomenclature(PangoLikeNomenclature):
     ##############################
     # Superclass implementations #
     ##############################
+    def get_versioner(self, as_of: datetime.date):
+        if self.repo_versioning_path is None:
+            raise RuntimeError(
+                "Cannot get versioner without path to file containing previously known taxa."
+            )
+        if self.versioning_extractor is None:
+            raise RuntimeError(
+                "Cannot get versioner without function to extract taxa from file."
+            )
+        versioner = NomenclatureVersioner.from_gh_file(
+            repo=self.repo,
+            file_path=self.repo_versioning_path,
+            as_of=as_of,
+            extractor=self.versioning_extractor,
+        )
+        # Check we have only valid names
+        self.validate(versioner.names)
+        return versioner
 
     def is_ambiguous(self, name: str) -> bool:
         """
@@ -1057,13 +1146,18 @@ class PangoNomenclature(PangoLikeNomenclature):
             self.is_hybrid(name) and self.num_sublevels(name) == 0
         )
 
-    def setup_alias_map(self) -> None:
+    def setup_alias_map(self, as_of: Optional[datetime.date] = None) -> None:
         """
         Sets up the alias and reverse alias maps.
 
-        The alias map will be retrieved preferentially from local using self.fp_alias_json
-        if it exists, otherwise it will be retrieved remotely using self.url_alias_json.
-        If neither are specified, a RuntimeError is raised.
+        The alias map will be retrieved preferentially from local using self.local_alias_path
+        if it exists, otherwise it will be retrieved from GitHub using self.repo_alias_path and
+        self.repo. If neither are specified, a RuntimeError is raised.
+
+        Can retrieve older committed versions of the alias json from GitHub, but this
+        must be used with care. Older aliasing lists know nothing of newer names
+        and both PangoNomenclature.longer_name() and PangoNomenclature.shorter_name()
+        can fail at runtime!
 
         Raw alias maps for Pango nomenclatures are (remote or local) json files
         which provide either:
@@ -1074,6 +1168,12 @@ class PangoNomenclature(PangoLikeNomenclature):
         for example, either "JN": "B.1.1.529.2.86.1" or "JN": "BA.2.86.1" would be
         valid.
 
+        Parameters
+        -------
+        as_of: datetime.date
+            The date for which to retrieve the alias list when not reading from local.
+            None (default) for most current.
+
         Returns
         -------
         None
@@ -1081,14 +1181,16 @@ class PangoNomenclature(PangoLikeNomenclature):
             self.sanitize_map() and self.invert_map().
         """
         # Should we be thinking about encoding and/or defensive measures?
-        if self.fp_alias_json:
-            alias_file = open(self.fp_alias_json)
+        if self.local_alias_path:
+            alias_file = open(self.local_alias_path)
             alias = json.load(alias_file)
             alias_file.close()
             self.alias_map = dict(alias)
-        elif self.url_alias_json:
-            with urllib.request.urlopen(self.url_alias_json) as response:
-                self.alias_map = json.loads(response.read().decode("utf8"))
+        elif self.repo_alias_path:
+            alias_str = get_gh_file_contents_as_of(
+                self.repo, self.repo_alias_path, as_of
+            )
+            self.alias_map = json.loads(alias_str)
         else:
             raise RuntimeError(
                 "Must provide either a local or remote filepath to the alias json."
@@ -1116,14 +1218,15 @@ class PangoNomenclature(PangoLikeNomenclature):
 
         Parameters
         ----------
-        name : string specifying name of the taxon
+        name : str
+            string specifying name of the taxon
 
         Returns
         -------
         bool
             True if this is a valid name under the Pango nomenclature.
         """
-        if self.is_special(name) or self.is_hybrid(name):
+        if self.is_root(name) or self.is_special(name) or self.is_hybrid(name):
             return True
         return super().is_valid_name(name, min_sublevels, max_sublevels)
 
@@ -1133,7 +1236,10 @@ pango_sc2_nomenclature = PangoNomenclature(
     max_sublevels=3,
     special=["A", "B"],
     system="SARS-CoV-2",
-    url_alias_json="https://raw.githubusercontent.com/cov-lineages/pango-designation/master/pango_designation/alias_key.json",
+    repo="cov-lineages/pango-designation",
+    repo_alias_path="pango_designation/alias_key.json",
+    repo_versioning_path="lineage_notes.txt",
+    versioning_extractor=_pango_sc2_extractor,
 )
 """
 Pango nomenclature for SARS-CoV-2.
