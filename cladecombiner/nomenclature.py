@@ -23,7 +23,7 @@ from .github import (
     get_gh_file_contents_as_of,
 )
 from .taxon import Taxon
-from .tree_utils import _nextstrain_edge_matrix_parser, add_paraphyletic_tips
+from .tree_utils import add_paraphyletic_tips, tree_from_edge_table_string
 
 
 class Nomenclature(ABC):
@@ -323,7 +323,7 @@ class NextstrainLikeNomenclature(
         hybrid_fun: Callable,
     ):
         """
-        ArbitraryGithubNomenclature initialization.
+        NextstrainLikeNomenclature initialization.
 
         Parameters
         ----------
@@ -1506,7 +1506,12 @@ nextstrain_sc2_nomenclature = NextstrainLikeNomenclature(
     master_list="defaults/clades.tsv",
     master_list_parser=_nextstrain_sc2_extractor,
     treefile="defaults/clade_hierarchy.tsv",
-    treefile_parser=_nextstrain_edge_matrix_parser,
+    treefile_parser=lambda edge_table: tree_from_edge_table_string(
+        edge_table=edge_table,
+        delimiter="\t",
+        parent_col="parent",
+        child_col="clade",
+    ),
     root="19A",
     name="NextstrainClades(SARS-CoV-2)",
     ambiguous_fun=lambda _: False,

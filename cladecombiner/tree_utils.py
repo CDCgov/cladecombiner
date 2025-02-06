@@ -235,7 +235,3 @@ def tree_from_edge_table_string(
     child_parent = {row[child_col]: row[parent_col] for row in reader}  # type: ignore #pylance can't track that we've already sanitized this
 
     return edge_dict_to_tree(child_parent)
-
-
-def _nextstrain_edge_matrix_parser():
-    raise NotImplementedError()
