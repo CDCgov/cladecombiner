@@ -1,41 +1,20 @@
-import json
-
-import pytest
-
 from cladecombiner.tree_utils import (
     add_paraphyletic_tips,
+    fully_labeled_trees_same,
     prune_nonancestral,
-    tree_from_edge_dict,
+    tree_from_edge_table_string,
 )
 
-r"""
-The json file defines the following tree
-  /-----PATHG
-  |
-MONTY      /-----LIFE-----OF-----BRIAN
-  |        |
-  \-----PYTHONS    /-----CARNIVAL
-           |       |
-           \-----FLYING
-                   |
-                   \-----CIRCUS
-"""
 
-
-@pytest.fixture
-def tree():
-    with open("tests/toy_arbitrary_tree.json") as f:
-        tree = tree_from_edge_dict(json.load(f))
-    return tree
-
-
-def test_tree_correct(tree):
+def test_tree_correct(arbitrary_taxonomy_tree):
     expected_tips = {"PATHG", "BRIAN", "CARNIVAL", "CIRCUS"}
-    tips = {leaf.label for leaf in tree.leaf_node_iter()}
+    tips = {leaf.label for leaf in arbitrary_taxonomy_tree.leaf_node_iter()}
     assert expected_tips == tips
 
     expected_internal = {"MONTY", "PYTHONS", "FLYING", "LIFE", "OF"}
-    internal = {leaf.label for leaf in tree.leaf_node_iter()}
+    internal = {
+        leaf.label for leaf in arbitrary_taxonomy_tree.leaf_node_iter()
+    }
     assert not expected_internal == internal
 
     expected_children = {
@@ -46,15 +25,15 @@ def test_tree_correct(tree):
         "OF": {"BRIAN"},
     }
 
-    for node in tree.postorder_internal_node_iter():
+    for node in arbitrary_taxonomy_tree.postorder_internal_node_iter():
         observed_children = set(
             child.label for child in node.child_node_iter()
         )
         assert expected_children[node.label] == observed_children
 
 
-def test_prune(tree):
-    tree = add_paraphyletic_tips(tree, ["MONTY", "OF"])
+def test_prune(arbitrary_taxonomy_tree):
+    tree = add_paraphyletic_tips(arbitrary_taxonomy_tree, ["MONTY", "OF"])
     target_tips = ["MONTY", "OF", "CIRCUS"]
     tree = prune_nonancestral(tree, target_tips)
     print(
@@ -80,3 +59,16 @@ def test_prune(tree):
             child.label for child in node.child_node_iter()
         )
         assert expected_children[node.label] == observed_children
+
+
+def test_treefile_parsing(arbitrary_taxonomy_tree):
+    edge_table = """PYTHONS\tMONTY
+FLYING\tPYTHONS
+CIRCUS\tFLYING
+LIFE\tPYTHONS
+OF\tLIFE
+BRIAN\tOF
+CARNIVAL\tFLYING
+PATHG\tMONTY"""
+    parsed_tree = tree_from_edge_table_string(edge_table, "\t", 1, 0)
+    assert fully_labeled_trees_same(parsed_tree, arbitrary_taxonomy_tree)

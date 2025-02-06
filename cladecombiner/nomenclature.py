@@ -286,6 +286,10 @@ class ArbitraryNomenclature(Nomenclature):
 
 
 def ensure_taxa_known(func: Callable) -> Callable:
+    """
+    A decorator for NextstrainLikeNomenclature that makes sure the master taxon list has been read in from GitHub.
+    """
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if not self.taxa:
@@ -296,6 +300,10 @@ def ensure_taxa_known(func: Callable) -> Callable:
 
 
 def ensure_tree_known(func: Callable) -> Callable:
+    """
+    A decorator for NextstrainLikeNomenclature that makes sure the master tree has been read in from GitHub.
+    """
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.master_tree is None:
