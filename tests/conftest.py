@@ -1,10 +1,12 @@
 import copy
 import datetime
+import json
 from typing import Optional
 
 import pytest
 
 import cladecombiner
+import cladecombiner.tree_utils
 from cladecombiner.nomenclature import NomenclatureVersioner
 
 
@@ -188,3 +190,24 @@ def pango_historical_bundle(pango_with_toy_alias):
     pango_historical.get_versioner = replacement_versioner
 
     return versioned_taxa_str, pango_historical
+
+
+r"""
+The json file defines the following tree
+  /-----PATHG
+  |
+MONTY      /-----LIFE-----OF-----BRIAN
+  |        |
+  \-----PYTHONS    /-----CARNIVAL
+           |       |
+           \-----FLYING
+                   |
+                   \-----CIRCUS
+"""
+
+
+@pytest.fixture(scope="session")
+def arbitrary_taxonomy_tree():
+    with open("tests/toy_arbitrary_tree.json") as f:
+        tree = cladecombiner.tree_utils.tree_from_edge_dict(json.load(f))
+    return tree
