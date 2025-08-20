@@ -1,9 +1,17 @@
 # cladecombiner
 
-⚠️ This is a work in progress ⚠️
+> [!CAUTION]
+> This package should be considered to be in development, and interfaces to the core functionality may be changed.
 
 ## Overview
 `cladecombiner` is a tool for aggregating taxa based on their evolutionary relationships, targeted at Pango lineages.
+
+### Usage
+
+For documentation on how to use `cladecombiner`, see [here](https://cdcgov.github.io/cladecombiner/).
+
+For an example of cladecombiner usage, see the [data module](https://github.com/CDCgov/cfa-viral-lineage-model/blob/main/linmod/data.py) of [`linmod`](https://github.com/CDCgov/cfa-viral-lineage-model/tree/main), where historical [Nextstrain clade](https://nextstrain.org/blog/2021-01-06-updated-SARS-CoV-2-clade-naming) assignments are approximated via the [`cladecombiner.AsOfAggregator`](https://cdcgov.github.io/cladecombiner/as_of_agg/).
+This in turn is used in a [pipeline](https://github.com/CDCgov/cfa-viral-lineage-model/blob/main/docs/architecture.md) for [retrospective forecasting](https://github.com/CDCgov/cfa-viral-lineage-model/tree/main/retrospective-forecasting) of SARS-CoV-2 variant proportions.
 
 ## Project Admin
 

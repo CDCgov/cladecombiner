@@ -2,11 +2,11 @@
 
 This package provides functionality for working with taxa, with a focus on phylogenetic aggregation to higher-order taxa.
 
-While the functionality is intended to be general, current out-of-the-box support is limited to Pango lineages for SARS-CoV-2.
+While the functionality is intended to be general, current out-of-the-box support is limited to [Pango lineages](https://www.nature.com/articles/s41564-020-0770-5) and [Nextstrain clades](https://nextstrain.org/blog/2021-01-06-updated-SARS-CoV-2-clade-naming) for SARS-CoV-2.
 
 ## Taxon, clade, or lineage?
 
-For the purposes of cladecombiner and its documentation, a taxon is a unit of taxonomy. [Nextstrain clades](https://nextstrain.org/blog/2021-01-06-updated-SARS-CoV-2-clade-naming) and [Pango lineages](https://www.nature.com/articles/s41564-020-0770-5) for SARS-CoV-2 are both examples of taxa.
+For the purposes of cladecombiner and its documentation, a taxon is a unit of taxonomy. Nextstrain clades and Pango lineages for SARS-CoV-2 are both examples of taxa.
 We reserve the terms "clade" and "lineage" (unless referring to Nextstrain clades or Pango lineages) for the usual sense of monophyletic groupings defined by an ancestor and all its descendants.
 
 As clades can contain clades and lineages can contain lineages, taxa can contain taxa.
