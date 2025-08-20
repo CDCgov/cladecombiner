@@ -1,0 +1,728 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+        <link rel="next" href="api/">
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>cladecombiner</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cladecombiner" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="cladecombiner" class="md-header__button md-logo" aria-label="cladecombiner" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            cladecombiner
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              cladecombiner
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="cladecombiner" class="md-nav__button md-logo" aria-label="cladecombiner" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    cladecombiner
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    cladecombiner
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    cladecombiner
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#taxon-clade-or-lineage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxon, clade, or lineage?
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Taxon, clade, or lineage?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ancestral-versus-tip-taxa" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ancestral versus tip taxa
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#taxonomy-and-nomenclature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxonomy and nomenclature
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Taxonomy and nomenclature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nomenclature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Nomenclature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxonomy
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="fixed_agg_workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Phylogenetic aggregation to fixed targets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="as_of_agg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    As-of aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="other_systems/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Other nomenclatures and taxonomies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#taxon-clade-or-lineage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxon, clade, or lineage?
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Taxon, clade, or lineage?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ancestral-versus-tip-taxa" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ancestral versus tip taxa
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#taxonomy-and-nomenclature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxonomy and nomenclature
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Taxonomy and nomenclature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nomenclature" class="md-nav__link">
+    <span class="md-ellipsis">
+      Nomenclature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Taxonomy
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="cladecombiner">cladecombiner</h1>
+<p>This package provides functionality for working with taxa, with a focus on phylogenetic aggregation to higher-order taxa.</p>
+<p>While the functionality is intended to be general, current out-of-the-box support is limited to <a href="https://www.nature.com/articles/s41564-020-0770-5">Pango lineages</a> and <a href="https://nextstrain.org/blog/2021-01-06-updated-SARS-CoV-2-clade-naming">Nextstrain clades</a> for SARS-CoV-2.</p>
+<h2 id="taxon-clade-or-lineage">Taxon, clade, or lineage?</h2>
+<p>For the purposes of cladecombiner and its documentation, a taxon is a unit of taxonomy. Nextstrain clades and Pango lineages for SARS-CoV-2 are both examples of taxa.
+We reserve the terms "clade" and "lineage" (unless referring to Nextstrain clades or Pango lineages) for the usual sense of monophyletic groupings defined by an ancestor and all its descendants.</p>
+<p>As clades can contain clades and lineages can contain lineages, taxa can contain taxa.
+Cladecombiner assumes that there is some base level of taxonomy which can be represented as a phylogeny with every taxon at this level as a tip.
+Cladecombiner defaults to monophyletic groupings of these taxa where possible, but allows for non-monophyletic aggregated taxa.</p>
+<h3 id="ancestral-versus-tip-taxa">Ancestral versus tip taxa</h3>
+<p>When tracking ongoing evolution, the naming of new monophyletic taxa creates potential ambiguity when using the name of the now non-monophyletic ancestor.
+For example, JN.1 can refer to the ancestral taxon, which has children such as KP.2.
+It can also refer to JN.1 the taxon we can observe in data (a sequence which belongs to JN.1 but not any more specifically named descendant).</p>
+<p>Cladecombiner distinguishes between these two senses in which a taxon name can be used by adding tips to the underlying taxonomy tree to represent the non-monophyletic remainder.
+Thus, if needed, the ancestral <code>Taxon("JN.1", is_tip=False)</code> can have as a descendant tip <code>Taxon("JN.1", is_tip=True)</code>.</p>
+<h2 id="usage">Usage</h2>
+<p>If we have line list data like this:</p>
+<table>
+<thead>
+<tr>
+<th>Lineage</th>
+<th>Location</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BA.2</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>BA.2.86</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>JN.1.9.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>KP.1.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>FW.1.1.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+</tbody>
+</table>
+<p>cladecombiner is a tool that provides mappings so that we can make it look like this:</p>
+<table>
+<thead>
+<tr>
+<th>Lineage</th>
+<th>Location</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BA.2</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>BA.2</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>JN.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>JN.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+<tr>
+<td>JN.1</td>
+<td>IA</td>
+<td>2233-03-22</td>
+</tr>
+</tbody>
+</table>
+<p>Note that cladecombiner <em>does not</em> manipulate data tables itself.
+Instead, it provides taxon to taxon mappings which are generally suitable for this purpose in the form of python dictionaries.
+Thus, cladecombiner strives to be useful anywhere lineages need to be aggregated.</p>
+<p>At the moment, cladecombiner only supports aggregation when the final desired set of lineages is known.
+That is, it cannot currently choose what to aggregate to on its own.
+For more on doing this, see the documentation on <a href="fixed_agg_workflow/">phylogenetic aggregation of Pango lineages</a>.</p>
+<h2 id="taxonomy-and-nomenclature">Taxonomy and nomenclature</h2>
+<p>In cladecombiner parlance, nomenclature refers to rules for naming taxa while taxonomy specifies how taxa are related.
+Thus, if we want to check that all of the taxa in our data are valid Pango lineages for SARS-CoV-2, we use a <code>Nomenclature</code> object, while if we want to know whether JN.1 is ancestral to KP.2, we need to use a <code>TaxonomyScheme</code> object.
+We make this split, despite the fact that Pango names encode evolutionary history, for clean code separation.</p>
+<h3 id="nomenclature">Nomenclature</h3>
+<p>Working with <code>Nomenclature</code> objects, we can check lineage name validity, get longer form names, and such.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>import cladecombiner
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>from cladecombiner import pango_sc2_nomenclature as pn
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>pn.setup_alias_map()
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>my_lineages = [&quot;JN.1&quot;, &quot;KP.2&quot;]
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>pn.validate(my_lineages)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a># returns None, indicating validity
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>pn.longer_name(&quot;EG.1&quot;)
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a># &#39;XBB.1.9.2.1&#39;
+</span></code></pre></div>
+<p>Cladecombiner distinguishes the general Pango nomenclature from the specific instance of Pango nomenclature for SARS-CoV-2.
+Other instances for other outbreaks, have different <a href="api/#cladecombiner.nomenclature.PangoLikeNomenclature.is_special">special taxa</a>, different numbers of sublevels, and alias maps stored in different locations.
+For example, <a href="https://github.com/mpxv-lineages/lineage-designation">MPXV</a>.
+Instances of other Pango nomenclature schemes can be made from the <a href="api/#cladecombiner.nomenclature.PangoNomenclature"><code>PangoNomenclature</code> class</a> by specificying this (and some additional) information.</p>
+<h3 id="taxonomy">Taxonomy</h3>
+<p>To ask questions about taxonomy, we need a <code>TaxonomyScheme</code>.
+We can obtain one for the taxa of interest by getting the taxonomy tree describing their relationships, and creating a <code>PhylogeneticTaxonomyScheme</code> from it.</p>
+<p>Note that where <code>Nomenclature</code>s work on <code>str</code>s, <code>TaxonomyScheme</code>s work on <code>Taxon</code> objects.
+Every <code>Taxon</code> must either be declared as a tip (something observable directly) or not.
+Failure to appropriately specify this can lead to answers which seem nonsensical but which are in fact pedantically correct.
+For more, see <a href="#ancestral-versus-tip-taxa">above</a>.</p>
+<p>Note also that <code>PhylogeneticTaxonomyScheme</code>s only know about the taxa from which they were created and their ancestors.
+That is, cladecombiner does not create the tree of all Pango SARS-CoV-2 lineages at any point unless we explicitly feed in an exhaustive list of all known lineages.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>tree = pn.taxonomy_tree(my_taxa)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>taxonomy_scheme = cladecombiner.PhylogeneticTaxonomyScheme(tree)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>taxonomy_scheme.contains(
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    cladecombiner.Taxon(&quot;JN.1&quot;, is_tip=False),
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    cladecombiner.Taxon(&quot;KP.2&quot;, is_tip=True)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>)
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a># True, ancestral JN.1 contains KP.1
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>taxonomy_scheme.contains(
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    cladecombiner.Taxon(&quot;JN.1&quot;, is_tip=True),
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    cladecombiner.Taxon(&quot;KP.2&quot;, is_tip=True)
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>)
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a># False, not-more-specifically-named JN.1 does not contain KP.1
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>taxonomy_scheme.contains(
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    cladecombiner.Taxon(&quot;JN.1&quot;, is_tip=False),
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    cladecombiner.Taxon(&quot;KP.1&quot;, is_tip=True)
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>)
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a># False, because KP.1 is unknown to taxonomy_scheme
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="javascript/katex.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
+      
+    
+  </body>
+</html>

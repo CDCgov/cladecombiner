@@ -1,0 +1,761 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../api/">
+      
+      
+        <link rel="next" href="../as_of_agg/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>Phylogenetic aggregation to fixed targets - cladecombiner</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#phylogenetic-aggregation-to-fixed-targets" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="cladecombiner" class="md-header__button md-logo" aria-label="cladecombiner" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            cladecombiner
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Phylogenetic aggregation to fixed targets
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="cladecombiner" class="md-nav__button md-logo" aria-label="cladecombiner" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    cladecombiner
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    cladecombiner
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Phylogenetic aggregation to fixed targets
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Phylogenetic aggregation to fixed targets
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#observed-taxa" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observed taxa
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-the-taxonomy-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating the taxonomy scheme
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregation-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aggregation targets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aggregate
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-and-saving-the-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using and saving the aggregation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#important-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important settings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#off_target" class="md-nav__link">
+    <span class="md-ellipsis">
+      off_target
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sort_clades" class="md-nav__link">
+    <span class="md-ellipsis">
+      sort_clades
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../as_of_agg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    As-of aggregation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../other_systems/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Other nomenclatures and taxonomies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#observed-taxa" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observed taxa
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-the-taxonomy-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating the taxonomy scheme
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregation-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aggregation targets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Aggregate
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-and-saving-the-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using and saving the aggregation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#important-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important settings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Important settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#off_target" class="md-nav__link">
+    <span class="md-ellipsis">
+      off_target
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sort_clades" class="md-nav__link">
+    <span class="md-ellipsis">
+      sort_clades
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="phylogenetic-aggregation-to-fixed-targets">Phylogenetic aggregation to fixed targets</h1>
+<p>Using the <code>BasicPhylogeneticAggregator</code>, we can phylogenetically aggregate a set of observed taxa into a pre-defined set of aggregated taxa.</p>
+<p>That is, if we already know what aggregated taxa we want, we can use the <code>BasicPhylogeneticAggregator</code> to do this such that:</p>
+<ul>
+<li>Explicit mappings can be recorded for all taxa (by storing the python <code>dict</code> to json)</li>
+<li>The addition of new taxa to the input data can be handled with minimal pain (by re-running the same python code on the new input file)</li>
+</ul>
+<h2 id="observed-taxa">Observed taxa</h2>
+<p>First, we need to get the observed taxa as <code>cladecombiner.Taxon</code> objects.
+If these are in a file, we can read them in:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>import cladecombiner
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>taxa = cladecombiner.read_taxa(&quot;path/to/file&quot;)
+</span></code></pre></div>
+<p>If we already have these as a list of strings in python, we can convert them:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>import cladecombiner
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>lineages = [
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    &quot;BA.2&quot;,
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    &quot;BA.2.86&quot;,
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    &quot;XCU&quot;,
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    &quot;XDQ&quot;,
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    &quot;BQ.1.1.23&quot;,
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    &quot;JN.6&quot;,
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    &quot;JN.1.9.1&quot;,
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    &quot;JN.9&quot;,
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    &quot;KP.1.1&quot;,
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    &quot;FW.1.1.1&quot;,
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    &quot;BA.5.2.6&quot;,
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>]
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>taxa = [cladecombiner.Taxon(lin, True) for lin in lineages]
+</span></code></pre></div>
+<p>Note that we are declaring these to all be <em>tip</em> taxa.
+Internally, aggregation is simpler when we treat everything we can observe directly as a tip in the taxonomy tree.
+For more on this distinction, <a href="../#ancestral-versus-tip-taxa">see here</a>.</p>
+<h2 id="creating-the-taxonomy-scheme">Creating the taxonomy scheme</h2>
+<p>Aggregating phylogenetically requires us to create a <code>PhylogeneticTaxonomyScheme</code>.
+We do this by using Pango nomenclature's rules to get the taxonomic tree relating the observed lineages, and creating a taxonomy scheme from it.
+We need access the alias json for Pango SARS-CoV-2 lineages so that we know that, for example, BA is B.1.1.529.
+By default, cladecombiner automatically retrieves the latest version from the <a href="https://github.com/cov-lineages/pango-designation/blob/master/pango_designation/alias_key.json">pango-designation</a> git repo.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>from cladecombiner import pango_sc2_nomenclature as pn
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>pn.setup_alias_map()
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>tree = pn.taxonomy_tree(taxa)
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>scheme = cladecombiner.PhylogeneticTaxonomyScheme(tree)
+</span></code></pre></div>
+<p>These trees are wrappers around <code>dendropy.Tree</code> objects, and can be printed to screen for inspection.
+The command <code>print(tree.as_ascii_plot(plot_metric="level", show_internal_node_labels=False))</code> will, for these taxa, yield</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>                         /----+---- BA.5.2.6
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                    /----+
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>                    |    \----+----+----+----+----+----+----+---- BQ.1.1.23
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>                    |
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                    |                   /----+----+----+---- KP.1.1
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                    |              /----+
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>                    |              |    \----+---- JN.1.9.1
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                    |              |
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>+----+----+----+----+         /----+---- XDQ
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>                    |         |    |
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>                    |         |    |---- JN.9
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>                    |    /----+    |
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>                    |    |    |    \---- JN.6
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>                    |    |    |
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>                    |    |    \---- BA.2.86
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>                    \----+
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>                         |----+----+----+----+----+----+----+----+----+---- FW.1.1.1
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>                         |
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>                         |----+----+----+----+---- XCU
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>                         |
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>                         \---- BA.2
+</span></code></pre></div>
+<p>The observed taxa are all tips, and the internal nodes are represented by <code>+</code> (names not shown for compactness, set <code>show_internal_node_labels=True</code> to see these).
+Some of these nodes here have only one child, while others have many, because cladecombiner makes this tree to include every named Pango lineage in the complete histories of all lineages.
+Thus, the first four nodes are the root (in cladecombiner parlance, an empty string, <code>""</code>), B, B.1, B.1.1, and B.1.1.529 (aka BA, but note that cladecombiner is pedantic about names and does not accept naked aliases like BA).
+Of these, only BA has multiple children among the observed lineages, so only it is a branching point in the tree.</p>
+<h2 id="aggregation-targets">Aggregation targets</h2>
+<p>We also need the desired aggregation targets, the taxa to which we want to aggregate.
+As with observed taxa, we can read these in or create them from strings.
+Let us assume we want to aggregate to BA.2.86.1 (aka JN), BA.2, BA.5, and KP.1.1.</p>
+<p>Aggregation requires us to be explicit about whether we are truly aggregating or not.
+Three of these represent actual aggregations of the observed taxa, as we have observed lineages which are children of BA.2, BA.5, and JN.
+However, as we have no children of KP.1.1 in our observed lineages, it is a tip.
+In order to keep tip taxa we want as aggregation targets from being added to any higher taxa which contain them, we must specify self-mappings for each of them due to the <a href="#sort_clades">algorithm for nested taxa</a>.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>target_taxa = [
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    cladecombiner.Taxon(&quot;BA.2&quot;, False),
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    cladecombiner.Taxon(&quot;BA.2.86.1&quot;, False),
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    cladecombiner.Taxon(&quot;BA.5&quot;, False),
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    cladecombiner.Taxon(&quot;KP.1.1&quot;, True),
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>]
+</span></code></pre></div>
+<h2 id="aggregate">Aggregate</h2>
+<p>We are now ready to create an aggregation object and aggregate.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>agg = cladecombiner.BasicPhylogeneticAggregator(targets=target_taxa, taxonomy_scheme=scheme)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>res = agg.aggregate(input_taxa)
+</span></code></pre></div>
+<p>The <code>res</code> object is an <code>Aggregation</code> object, essentially just a <code>dict[Taxon, Taxon]</code>, which maps each of the observed lineages in <code>taxa</code> to some aggregated taxon.
+For the above input taxa and targets, the resulting mapping is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Taxon(KP.1.1, tip=True)    : Taxon(KP.1.1, tip=True)
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Taxon(BA.5.2.6, tip=True)  : Taxon(BA.5, tip=False)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Taxon(BQ.1.1.23, tip=True) : Taxon(BA.5, tip=False)
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>Taxon(JN.1.9.1, tip=True)  : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>Taxon(XDQ, tip=True)       : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>Taxon(JN.9, tip=True)      : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>Taxon(JN.6, tip=True)      : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>Taxon(XCU, tip=True)       : Taxon(BA.2, tip=False)
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>Taxon(BA.2.86, tip=True)   : Taxon(BA.2, tip=False)
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>Taxon(FW.1.1.1, tip=True)  : Taxon(BA.2, tip=False)
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>Taxon(BA.2, tip=True)      : Taxon(BA.2, tip=False)
+</span></code></pre></div>
+<h2 id="using-and-saving-the-aggregation">Using and saving the aggregation</h2>
+<p>The resulting mapping can be used to rename taxa in, for example, line list data.
+A <code>dict[str,str]</code> can be obtained via <code>res.to_str()</code> which can be fed into the <code>replace</code> methods in <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html">pandas</a> or <a href="https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.replace.html">polars</a>.</p>
+<p>The <code>res.to_str()</code> dictionary can be saved for posterity by writing to file using python's <a href="https://docs.python.org/3/library/json.html"><code>json.dumps()</code></a> function.</p>
+<p>Saving the python script for posterity is also recommended.
+Where the saved map is an exact record of how the particular input taxa were mapped, the script can be used on a new set of input taxa to produce a new mapping.</p>
+<h2 id="important-settings">Important settings</h2>
+<p>When creating the <code>BasicPhylogeneticAggregator</code>, there are two important arguments: <code>off_target</code> and <code>sort_clades</code>.</p>
+<h3 id="off_target"><code>off_target</code></h3>
+<p>The mapping for a taxon which does not have an ancestor in the <code>targets</code> is determined by <code>off_target</code>, which can be:</p>
+<ul>
+<li><code>"other"</code> to put all such taxa into <code>Taxon(other, tip=False)</code>. <strong>This is the default.</strong></li>
+<li><code>"self"</code> to map all such taxa to themselves.</li>
+</ul>
+<p>For example, if we hadn't included BA.2 in the targets, then the resulting map would have been, by default,</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Taxon(KP.1.1, tip=True)    : Taxon(KP.1.1, tip=True)
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Taxon(BA.5.2.6, tip=True)  : Taxon(BA.5, tip=False)
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Taxon(BQ.1.1.23, tip=True) : Taxon(BA.5, tip=False)
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Taxon(JN.1.9.1, tip=True)  : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Taxon(XDQ, tip=True)       : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Taxon(JN.9, tip=True)      : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>Taxon(JN.6, tip=True)      : Taxon(BA.2.86.1, tip=False)
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Taxon(XCU, tip=True)       : Taxon(other, tip=False)
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>Taxon(BA.2.86, tip=True)   : Taxon(other, tip=False)
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>Taxon(FW.1.1.1, tip=True)  : Taxon(other, tip=False)
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>Taxon(BA.2, tip=True)      : Taxon(other, tip=False)
+</span></code></pre></div>
+<h3 id="sort_clades"><code>sort_clades</code></h3>
+<p>The order in which clades are processed is important and is determined by <code>sort_clades</code>. When we process target a clade, we map all of its children to it, and then remove them from the pool of unmapped taxa. Thus, when nested target taxa are present, the order in which taxa are processed determines the mapping.</p>
+<ul>
+<li>If <code>sort_clades</code> is <code>True</code>, then we process clades so that, when clade X contains clade Y, we always aggregate to Y before X. In other words, this approach creates aggregated taxa starting from the smallest/lowest-ranked (least-inclusive) taxon in any nested set and working its way to the root. Thus, we process KP.1.1 before BA.2.86.1.1, and BA.2.86.1 before BA.2. The resulting aggregated taxa might better be termed BA.5, KP.1.1, non-KP.1.1 BA.2.86, and non-BA.2.86.1 BA.2. <strong>This is the default.</strong></li>
+<li>If <code>sort_clades</code> is <code>False</code>, then we process clades in the order they are listed. As BA.2 is listed before BA.2.86.1 in the above declaration of <code>target_taxa</code>, all children of BA.2.86.1 would end up mapped to BA.2, and the aggregation would be
+  <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Taxon(XCU, tip=True)       : Taxon(BA.2, tip=False)
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Taxon(BA.2.86, tip=True)   : Taxon(BA.2, tip=False)
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Taxon(FW.1.1.1, tip=True)  : Taxon(BA.2, tip=False)
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>Taxon(JN.1.9.1, tip=True)  : Taxon(BA.2, tip=False)
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>Taxon(BA.2, tip=True)      : Taxon(BA.2, tip=False)
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>Taxon(XDQ, tip=True)       : Taxon(BA.2, tip=False)
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>Taxon(JN.9, tip=True)      : Taxon(BA.2, tip=False)
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>Taxon(JN.6, tip=True)      : Taxon(BA.2, tip=False)
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>Taxon(KP.1.1, tip=True)    : Taxon(BA.2, tip=False)
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>Taxon(BA.5.2.6, tip=True)  : Taxon(BA.5, tip=False)
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>Taxon(BQ.1.1.23, tip=True) : Taxon(BA.5, tip=False)
+</span></code></pre></div></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="../javascript/katex.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
+      
+    
+  </body>
+</html>
